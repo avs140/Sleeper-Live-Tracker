@@ -25,22 +25,46 @@ class LiveController {
     return null;
   }
 
+
 async initializePage() {
+  this.storage = this.getStorageAPI();
+
   if (!this.storage) {
     this.showError('No league or username found. Please set them in the popup.');
     return;
   }
 
+  // Theme setup
+  try {
+    const savedTheme = await this.storage.get('theme');
+    const theme = savedTheme?.theme || 'light';
+    this.applyTheme(theme);
+
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+      themeToggle.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+      themeToggle.addEventListener('click', async () => {
+        const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
+        this.applyTheme(newTheme);
+        themeToggle.textContent = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        if (this.storage) await this.storage.set({ theme: newTheme });
+      });
+    }
+  } catch (err) {
+    console.error('Error initializing theme:', err);
+  }
+
+  // Load league & user data
   try {
     const saved = await this.storage.get(['selectedLeague', 'username', 'leagueList']);
     const { selectedLeague: leagueId, username } = saved;
 
     this.currentUsername = username || null;
 
-    // Populate league dropdown first
+    // Populate league dropdown
     await this.populateLeagueDropdown();
 
-    // Start live updates if league + username exist
+    // Start live updates if both league and username exist
     if (username && leagueId) {
       this.currentLeague = leagueId;
       await this.startLiveUpdates(leagueId, username);
@@ -51,6 +75,7 @@ async initializePage() {
     this.showError('Failed to initialize live scoring.');
   }
 }
+
 
   async startLiveUpdates(leagueId, username) {
     // Initial load
@@ -177,26 +202,28 @@ createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal) {
   `;
 }
 
-  createLivePlayerListHTML(playerData) {
-    return playerData.map(data => {
-      const { id, player, actualPoints, projectedPoints, position } = data;
-      const displayPosition = UIComponents.formatPosition(position);
-      const statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
-      const playerName = player?.full_name || 'Unknown Player';
-      const playerNameSafe = playerName.replace(/"/g, '&quot;');
+createLivePlayerListHTML(playerData) {
+  return playerData.map(data => {
+    const { id, player, actualPoints, projectedPoints, position } = data;
+    const displayPosition = UIComponents.formatPosition(position);
+    const statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
+    const playerName = player?.full_name || 'Unknown Player';
+    const playerNameSafe = playerName.replace(/"/g, '&quot;');
 
-      return `
-        <li id="player-${id}" class="player-item ${statusClass}">
-          <span class="player-info">
-            ${displayPosition} - 
-            <a href="#" class="player-link" data-player-id="${id}" data-player-name="${playerNameSafe}" data-player-position="${displayPosition}">${playerName}</a>:
-            <span class="points-bold">${actualPoints.toFixed(1)} pts</span>
-          </span>
-          <span class="projection-inline">Projected: ${projectedPoints.toFixed(1)}</span>
-        </li>
-      `;
-    }).join('');
-  }
+    return `
+      <li id="player-${id}" class="player-item ${statusClass}">
+        <span class="player-top">
+          <span class="position">${displayPosition}</span> - 
+          <a href="#" class="player-link" data-player-id="${id}" data-player-name="${playerNameSafe}" data-player-position="${displayPosition}"style="text-decoration: underline;">
+            <span class="player">${playerName}</span>
+          </a>
+          <span class="points">${actualPoints.toFixed(1)} pts</span>
+        </span>
+        <span class="projection">Projected: ${projectedPoints.toFixed(1)}</span>
+      </li>
+    `;
+  }).join('');
+}
 
 attachPlayerClickListener() {
   const statNameMap = {
@@ -286,13 +313,6 @@ async populateLeagueDropdown() {
       select.value = this.currentLeague;
     }
 
-    // Update league name header
-    const leagueNameHeader = document.querySelector('#leagueName h1');
-	
-	
-    const selectedLeagueObj = leagues.find(l => l.league_id === select.value);
-    if (selectedLeagueObj) leagueNameHeader.textContent = selectedLeagueObj.name;
-
     // Attach change listener
     select.addEventListener('change', async (e) => {
       const leagueId = e.target.value;
@@ -302,10 +322,6 @@ async populateLeagueDropdown() {
 
       // Save the selection
       if (this.storage) await this.storage.set({ selectedLeague: leagueId });
-
-      // Update header text
-      const newLeague = leagues.find(l => l.league_id === leagueId);
-      if (newLeague) leagueNameHeader.textContent = newLeague.name;
 
       // Reload matchup data
       if (this.currentUsername && this.currentLeague) {
@@ -319,8 +335,12 @@ async populateLeagueDropdown() {
 }
 
 updatePageHeader(leagueName, week) {
-  const leagueHeader = document.querySelector('#leagueName h1');
-  if (leagueHeader) leagueHeader.textContent = leagueName;
+  // Instead of touching <h1>, update the <select> label if needed
+  const select = document.getElementById('leagueSelectLive');
+  if (select && select.value) {
+    const option = [...select.options].find(opt => opt.value === select.value);
+    if (option) option.textContent = leagueName;
+  }
 
   const matchupPanel = document.getElementById('matchupPanel');
   if (matchupPanel) {
@@ -328,6 +348,13 @@ updatePageHeader(leagueName, week) {
     if (h3) h3.innerHTML = `Week ${week} Matchup`;
   }
 }
+
+applyTheme(theme) {
+  document.body.classList.remove('light', 'dark');
+  document.body.classList.add(theme);
+}
+
+
 updateScoringFeed(myProjections, opponentProjections, userMap, myOwnerId, opponentOwnerId) {
   // Clear previous score deltas so we only notify once per change
   this.scoringFeed.clear();  
@@ -346,7 +373,6 @@ updateScoringFeed(myProjections, opponentProjections, userMap, myOwnerId, oppone
     this.api.clearCache();
   }
 }
-
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   const liveController = new LiveController();

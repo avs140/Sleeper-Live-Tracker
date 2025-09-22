@@ -15,7 +15,7 @@ return `
       <span class="toggle-btn">▼</span>
     </div>
     <h4 class="matchup-subheader">
-      Projected Total: <span>${projectedTotal.toFixed(1)}</span>
+	  <span class="projection-inline">Projected: ${projectedTotal.toFixed(1)}</span>
     </h4>
     <div class="player-list-container">
       <ul class="player-list">

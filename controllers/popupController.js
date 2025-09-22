@@ -37,30 +37,45 @@ class PopupController {
     this.elements.loadBtn?.addEventListener('click', () => this.handleLoadClick());
     this.elements.leagueSelect?.addEventListener('change', (e) => this.handleLeagueChange(e));
     this.elements.liveBtn?.addEventListener('click', () => this.openLivePage());
+	  
+	  
+	document.getElementById('themeToggle')?.addEventListener('click', async () => {
+    const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
+    if (this.storage) await this.storage.set({ theme: newTheme });
+    this.applyTheme(newTheme);
+    this.updateThemeButton(newTheme);
+  });
+	
   }
 
-  async loadSavedData() {
-    if (!this.storage) return;
+ async loadSavedData() {
+  if (!this.storage) return;
 
-    try {
-      const saved = await this.storage.get(['username', 'selectedLeague']);
-      
-      if (saved.username) {
-        this.elements.username.value = saved.username;
-        this.currentUsername = saved.username;
-        await this.loadLeagues();
+  try {
+    const saved = await this.storage.get(['username', 'selectedLeague', 'theme']);
+    
+    if (saved.username) {
+      this.elements.username.value = saved.username;
+      this.currentUsername = saved.username;
+      await this.loadLeagues();
 
-        if (saved.selectedLeague) {
-          this.elements.leagueSelect.value = saved.selectedLeague;
-          this.currentLeague = saved.selectedLeague;
-          await this.loadMatchupData();
-          this.showLiveButton();
-        }
+      if (saved.selectedLeague) {
+        this.elements.leagueSelect.value = saved.selectedLeague;
+        this.currentLeague = saved.selectedLeague;
+        await this.loadMatchupData();
+        this.showLiveButton();
       }
-    } catch (error) {
-      console.error('Error loading saved data:', error);
     }
+
+    // Theme
+    const theme = saved.theme || 'light';
+    this.applyTheme(theme);
+    this.updateThemeButton(theme);
+
+  } catch (error) {
+    console.error('Error loading saved data:', error);
   }
+}
 
   async handleLoadClick() {
     const username = this.elements.username?.value.trim();
@@ -234,6 +249,16 @@ if (probFill && probText) {
     } else if (typeof browser !== 'undefined') {
       browser.tabs.create({ url });
     }
+  }
+  applyTheme(theme) {
+    document.body.classList.remove('light', 'dark');
+    document.body.classList.add(theme);
+  }
+
+  updateThemeButton(theme) {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
   }
 }
 
