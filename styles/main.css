@@ -1,0 +1,673 @@
+/* styles/main.css - Consolidated and improved styles */
+
+/* ==========================================================================
+   Base Styles
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.4;
+  color: #333;
+}
+
+/* ==========================================================================
+   Popup Styles
+   ========================================================================== */
+.popup-body {
+  width: 320px;
+  padding: 10px;
+  background: #f0f2f5;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.popup-header {
+  text-align: center;
+  margin: 0;
+  font-size: 20px;
+  color: #0077cc;
+}
+
+/* Form Controls */
+.username-section {
+  display: flex;
+  gap: 5px;
+}
+
+.username-section input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.username-section input:focus {
+  outline: none;
+  border-color: #0077cc;
+  box-shadow: 0 0 0 2px rgba(0, 119, 204, 0.1);
+}
+
+.btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #0077cc;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.btn:hover {
+  background-color: #005fa3;
+}
+
+.btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.league-section {
+  width: 100%;
+}
+
+#leagueSelect {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  background-color: white;
+}
+
+/* ==========================================================================
+   Live Page Layout
+   ========================================================================== */
+.live-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+}
+
+.league-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;  /* top/bottom 0.3rem instead of 1rem */
+  background-color: #f0f4f8; /* subtle light background */
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.league-header h1 {
+  margin: 0;
+  font-size: 1.1rem; 
+  color: #0077cc;
+  font-weight: 600;
+}
+
+.league-select {
+    width: auto;            /* let it size to content */
+  max-width: 250px;       /* optional cap */
+  padding: 0.5rem 0.8rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #ffffff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.league-select:hover {
+  border-color: #0077cc;
+}
+
+.league-select:focus {
+  outline: none;
+  border-color: #0077cc;
+  box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.15);
+}
+
+
+.panel-container {
+  display: flex;
+  flex: 1;
+  width: 100%;
+}
+
+#matchupPanel {
+  width: 30%;
+  background-color: #f8f9fa;
+  padding: 3px;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+}
+
+#feedPanel {
+  width: 70%;
+  padding: 20px;
+  background-color: #ffffff;
+  overflow-y: auto;
+}
+
+.matchup-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #f0f2f5;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.team-score {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.team-points.winning { color: #28a745; }
+.team-points.losing { color: #dc3545; }
+.team-points.tied { color: #6c757d; }
+
+.win-prob-bar {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+    margin: 2px 0;       /* minimal vertical spacing */
+}
+
+.win-prob-fill {
+  height: 100%;
+  background-color: #28a745; /* green for win probability */
+  width: 0%;
+  transition: width 0.5s ease;
+  border-radius: 4px 0 0 4px; /* match bar radius */
+}
+
+.win-prob-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%); /* vertical center */
+  font-size: 0.75em;           /* smaller font */
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+
+/* ==========================================================================
+   Matchup Display
+   ========================================================================== */
+.rosters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.roster-section {
+  background: #fff;
+  padding: 5px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid #e1e5e9;
+}
+
+.roster-section.collapsed .toggle-btn {
+  transform: rotate(-90deg);
+}
+
+.roster-section.collapsed .player-list-container {
+  max-height: 0;
+}
+
+.player-list-container {
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  max-height: 1000px; /* initially open */
+}
+
+.player-link {
+  color: #0077cc;
+  text-decoration: none;
+}
+
+.player-link:hover {
+  text-decoration: underline;
+}
+
+.roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-btn {
+  font-size: 0.9em;
+  user-select: none;
+  transition: transform 0.3s ease;
+}
+
+.matchup-header {
+  display: flex;
+  justify-content: flex-start; /* keep items together */
+  align-items: center;
+  gap: 8px; /* spacing between teamName and points */
+  margin: 0 0 8px 0;
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.matchup-subheader {
+  font-size: 0.9em;
+  color: #666;
+  margin: 4px 0;
+  font-weight: normal;
+  margin-bottom: 15px;
+}
+
+.probability {
+  font-size: 0.85em;
+  color: #888;
+  margin: 4px 0 12px 0;
+  font-style: italic;
+}
+
+/* Score Colors */
+.points {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+
+.points.winning {
+  color: #28a745;
+  background-color: #d4edda;
+  
+}
+
+.points.losing {
+  color: #dc3545;
+  background-color: #f8d7da;
+}
+
+.points.tied {
+  color: #6c757d;
+  background-color: #e2e3e5;
+}
+
+/* ==========================================================================
+   Player Lists
+   ========================================================================== */
+.player-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  border-bottom: .5px solid #f1f3f4;
+  font-size: 0.8em;
+}
+
+.player-top {
+  display: flex;          /* keep position, name, and actual points inline */
+  gap: 4px;
+  align-items: center;
+}
+
+.player-item:last-child {
+  border-bottom: none;
+}
+
+.position {
+  font-weight: bold;
+  flex: none;          /* ensures it stays inline */
+  color: #0077cc;
+  background: #e0f0ff;
+  padding: 0 4px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
+
+.player-name {
+  flex: 1;
+}
+
+.points {
+  font-weight: bold;
+  color: #333;
+}
+.player-info {
+  display: inline; /* or keep flex if you need alignment */
+}
+
+.points-bold {
+  font-weight: bold;
+}
+.projection {
+  font-style: italic;
+  font-size: 0.em;
+  color: #666;
+}
+
+.projection-inline {
+  font-style: italic;
+  font-size: 0.75em;
+  color: #888;
+  margin-left: 8px;
+  margin-right: 4px
+}
+
+/* Player Status Styles */
+.player-item.active {
+  color: #28a745;
+}
+
+.player-item.out {
+  color: #6c757d;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.player-item.questionable {
+  color: #fd7e14;
+  font-style: italic;
+}
+
+/* ==========================================================================
+   Scoring Feed
+   ========================================================================== */
+.feed-header {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #0077cc;
+}
+
+.feed-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #dee2e6;
+  transition: all 0.2s ease;
+}
+
+.feed-item:hover {
+  background: #e9ecef;
+}
+
+.feed-item .positive {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.feed-item .negative {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.feed-item.positive {
+  border-left-color: #28a745;
+}
+
+.feed-item.negative {
+  border-left-color: #dc3545;
+}
+
+.team-name {
+  color: #6c757d;
+  font-size: 0.9em;
+}
+
+.timestamp {
+  color: #999;
+  font-size: 0.8em;
+}
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.toast {
+  background-color: #333;
+  color: white;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateX(100%);
+  animation: slideIn 0.3s ease forwards;
+}
+
+.toast.success {
+  background-color: #28a745;
+}
+
+.toast.error {
+  background-color: #dc3545;
+}
+
+.toast.info {
+  background-color: #17a2b8;
+}
+
+@keyframes slideIn {
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* ==========================================================================
+   State Classes
+   ========================================================================== */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.loading:before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dee2e6;
+  border-top: 2px solid #0077cc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  padding: 15px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+
+.fade-transition {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.fade-out {
+  opacity: 0;
+}
+
+.fade-in {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+@media (max-width: 768px) {
+  .panel-container {
+    flex-direction: column;
+  }
+
+  #matchupPanel,
+  #feedPanel {
+    width: 100%;
+  }
+
+  #matchupPanel {
+    border-right: none;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .rosters-container {
+    flex-direction: column;
+  }
+
+  .matchup-header {
+    font-size: 1em;
+  }
+
+  .player-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .projection {
+    margin-left: 0;
+  }
+}
+
+#leagueName h1,
+#matchupPanel h3,
+#weektitle h2 {
+  margin-top: 2px;
+  margin-bottom: 2px;
+  padding: 0;
+}
+
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 4px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mt-4 { margin-top: 16px; }
+
+.font-bold { font-weight: bold; }
+.font-normal { font-weight: normal; }
+
+.hidden { display: none; }
+.visible { display: block; }
+
+
+/* ==========================================================================
+   Module Display
+   ========================================================================== */
+   
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+
+/* Hidden state */
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+  max-height: 80%;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Close button */
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-size: 1.5em;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: #dc3545;
+}

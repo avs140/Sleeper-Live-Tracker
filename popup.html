@@ -1,0 +1,39 @@
+<!-- popup.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sleeper Live Scores</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="popup-body">
+  <div class="container">
+    <h2 class="popup-header">Sleeper Live</h2>
+
+    <!-- Username input and load button -->
+    <div class="username-section">
+      <input type="text" id="username" placeholder="Enter your Sleeper username">
+      <button id="loadBtn" class="btn">Load</button>
+    </div>
+
+    <!-- League selection dropdown -->
+    <div class="league-section">
+      <select id="leagueSelect">
+        <option value="">Select a league...</option>
+      </select>
+    </div>
+    <div id="weektitle"></div>
+<button id="liveBtn" class="btn btn-full hidden">Live Scoring</button>
+
+
+<!-- Matchup display -->
+<div id="matchups"></div>
+  </div>
+
+  <!-- Include all JavaScript files -->
+  <script src="api/sleeperApi.js"></script>
+  <script src="services/matchupService.js"></script>
+  <script src="ui/components.js"></script>
+  <script src="controllers/popupController.js"></script>
+</body>
+</html>
