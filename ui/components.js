@@ -3,28 +3,30 @@ class UIComponents {
   static createRosterHTML(roster, matchup, projectionData, teamName, opponentTotal = null) {
     const total = matchup.points || 0;
     const projectedTotal = projectionData.totalCombined;
-
     const colorClass = this.getScoreColorClass(total, opponentTotal);
+    const winningClass = opponentTotal !== null && total > opponentTotal ? "winning" : "";
 
-    return `
-  <div class="roster-section collapsed"> 
-    <div class="roster-header">
-      <h3 class="matchup-header">
-        ${teamName} <span class="points ${colorClass}">${total.toFixed(1)}</span>
+  return `
+    <div class="roster-section collapsed ${winningClass}">
+      <h3 class="matchup-header roster-header">
+        <span class="team-name">${teamName}</span>
+        <div class="header-right">
+          <span class="points ${colorClass}">${total.toFixed(1)}</span>
+          <span class="toggle-btn">▾</span>
+        </div>
       </h3>
-      <span class="toggle-btn">▾</span>
+      <h4 class="matchup-subheader">
+        Projected Total: <span>${projectedTotal.toFixed(1)}</span>
+      </h4>
+      <div class="player-list-container">
+        <ul class="player-list">
+          ${this.createPlayerListHTML(projectionData.playerData)}
+        </ul>
+      </div>
     </div>
-    <h4 class="matchup-subheader">
-	  <span class="projection-inline">Projected: ${projectedTotal.toFixed(1)}</span>
-    </h4>
-    <div class="player-list-container">
-      <ul class="player-list">
-        ${this.createPlayerListHTML(projectionData.playerData)}
-      </ul>
-    </div>
-  </div>
-`;
-  }
+  `;
+}
+
 
   static createPlayerListHTML(playerData) {
     return playerData.map(data => {

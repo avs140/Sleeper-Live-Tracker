@@ -131,19 +131,21 @@ class LiveController {
     const opponentTotal = opponentMatchup.points || 0;
     const winProbability = this.matchupService.calculateWinProbability(myProjections.totalCombined, opponentProjections.totalCombined);
 
-    // Render HTML
-    const html = `
-      <div class="rosters-container">
-	          <div class="win-prob-bar">
-          <div class="win-prob-fill" style="width: ${winProbability}%; background-color: ${winProbability >= 50 ? '#28a745' : '#dc3545'}"></div>
-          <span class="win-prob-text">${winProbability.toFixed(1)}% Win Probability</span>
-        </div>
-       
-	  
-        ${this.createLiveRosterHTML(myRoster, myMatchup, myProjections, userMap[myRoster.owner_id], opponentProjections.totalCombined)}
-        ${this.createLiveRosterHTML(opponentRoster, opponentMatchup, opponentProjections, userMap[opponentRoster.owner_id], myProjections.totalCombined)}
-      </div>
-    `;
+
+const myIsWinning = myTotal > opponentTotal;
+const oppIsWinning = opponentTotal > myTotal;
+
+const html = `
+  <div class="rosters-container">
+    <div class="win-prob-bar">
+      <div class="win-prob-fill" style="width: ${winProbability}%; background-color: ${winProbability >= 50 ? '#28a745' : '#dc3545'}"></div>
+      <span class="win-prob-text">${winProbability.toFixed(1)}% Win Probability</span>
+    </div>
+
+    ${this.createLiveRosterHTML(myRoster, myMatchup, myProjections, userMap[myRoster.owner_id], opponentProjections.totalCombined, myIsWinning)}
+    ${this.createLiveRosterHTML(opponentRoster, opponentMatchup, opponentProjections, userMap[opponentRoster.owner_id], myProjections.totalCombined, oppIsWinning)}
+  </div>
+`;
 
     UIComponents.updateElement('matchups', html);
 
@@ -177,14 +179,16 @@ class LiveController {
 
   }
 
-  createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal) {
-    const total = matchup.points || 0;
-    const projectedTotal = projectionData.totalCombined;
-    const colorClass = UIComponents.getScoreColorClass(total, opponentTotal);
-    const sectionId = `roster-${roster.owner_id}`; // use owner ID as stable identifier
+  createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal, isWinning) {
+  const total = matchup.points || 0;
+  const projectedTotal = projectionData.totalCombined;
+  const colorClass = UIComponents.getScoreColorClass(total, opponentTotal);
+  const sectionId = `roster-${roster.owner_id}`; // stable ID
 
-   return `
-<div class="roster-section collapsed" data-section-id="${sectionId}">
+  const winningClass = isWinning ? 'winning' : ''; // <-- dynamically add winning
+
+  return `
+<div class="roster-section collapsed ${winningClass}" data-section-id="${sectionId}">
   <h3 class="matchup-header roster-header">
     <span class="team-name">${teamName}</span>
     <div class="header-right">
@@ -202,7 +206,7 @@ class LiveController {
   </div>
 </div>
 `;
-  }
+}
 
   createLivePlayerListHTML(playerData) {
     return playerData.map(data => {

@@ -305,6 +305,11 @@ select {
   transition: transform 0.3s;
 }
 
+.roster-section.winning {
+  border: 2px solid var(--win-color);
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
 
 .roster-header {
   display: flex;
@@ -339,7 +344,7 @@ select {
 .matchup-subheader {
   margin: 6px 0 10px;
   color: var(--muted-text);
-  font-size: 0.9rem;
+  font-size: 0.6rem;
 }
 
 .score-pill {
@@ -454,23 +459,31 @@ body.dark .player-link {
    Scoring Feed
    ========================================================================== */
 .feed-header {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin: 0 0 6px 0; /* top 0, bottom 6px */
+  padding: 0 0 4px 0; /* top 0, bottom 4px */
   color: var(--link-color);
   border-bottom: 2px solid var(--border-color);
-  padding-bottom: 8px;
 }
 
 .feed-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background: var(--card-bg);
   padding: 10px;
   border-radius: 6px;
   margin-bottom: 8px;
-  border-left: 4px solid var(--border-color);
+  border-left: 4px solid var(--border-color); /* default */
+  background: var(--card-bg);
+}
+
+.feed-item strong {
+  flex: 2; /* takes up more space */
+}
+
+.feed-item span {
+  flex: 1; /* even spacing for others */
+  text-align: right;
 }
 
 .feed-item.positive {
