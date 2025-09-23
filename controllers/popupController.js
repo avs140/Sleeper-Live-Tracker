@@ -6,7 +6,7 @@ class PopupController {
     this.storage = this.getStorageAPI();
     this.currentLeague = null;
     this.currentUsername = null;
-    
+
     this.initializeElements();
     this.attachEventListeners();
     this.loadSavedData();
@@ -37,57 +37,57 @@ class PopupController {
     this.elements.loadBtn?.addEventListener('click', () => this.handleLoadClick());
     this.elements.leagueSelect?.addEventListener('change', (e) => this.handleLeagueChange(e));
     this.elements.liveBtn?.addEventListener('click', () => this.openLivePage());
-	  
-	  
-	document.getElementById('themeToggle')?.addEventListener('click', async () => {
-    const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
-    if (this.storage) await this.storage.set({ theme: newTheme });
-    this.applyTheme(newTheme);
-    this.updateThemeButton(newTheme);
-  });
-	
+
+
+    document.getElementById('themeToggle')?.addEventListener('click', async () => {
+      const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
+      if (this.storage) await this.storage.set({ theme: newTheme });
+      this.applyTheme(newTheme);
+      this.updateThemeButton(newTheme);
+    });
+
   }
 
- async loadSavedData() {
-  if (!this.storage) return;
+  async loadSavedData() {
+    if (!this.storage) return;
 
-  try {
-    const saved = await this.storage.get(['username', 'selectedLeague', 'theme']);
-    
-    if (saved.username) {
-      this.elements.username.value = saved.username;
-      this.currentUsername = saved.username;
-      await this.loadLeagues();
+    try {
+      const saved = await this.storage.get(['username', 'selectedLeague', 'theme']);
 
-      if (saved.selectedLeague) {
-        this.elements.leagueSelect.value = saved.selectedLeague;
-        this.currentLeague = saved.selectedLeague;
-        await this.loadMatchupData();
-        this.showLiveButton();
+      if (saved.username) {
+        this.elements.username.value = saved.username;
+        this.currentUsername = saved.username;
+        await this.loadLeagues();
+
+        if (saved.selectedLeague) {
+          this.elements.leagueSelect.value = saved.selectedLeague;
+          this.currentLeague = saved.selectedLeague;
+          await this.loadMatchupData();
+          this.showLiveButton();
+        }
       }
+
+      // Theme
+      const theme = saved.theme || 'light';
+      this.applyTheme(theme);
+      this.updateThemeButton(theme);
+
+    } catch (error) {
+      console.error('Error loading saved data:', error);
     }
-
-    // Theme
-    const theme = saved.theme || 'light';
-    this.applyTheme(theme);
-    this.updateThemeButton(theme);
-
-  } catch (error) {
-    console.error('Error loading saved data:', error);
   }
-}
 
   async handleLoadClick() {
     const username = this.elements.username?.value.trim();
     if (!username) return;
 
     this.currentUsername = username;
-    
+
     // Save username and request notification permission
     if (this.storage) {
       await this.storage.set({ username });
     }
-    
+
     this.requestNotificationPermission();
     await this.loadLeagues();
   }
@@ -114,9 +114,9 @@ class PopupController {
       }
 
 
-	if (this.storage) {
-      await this.storage.set({ leagueList: leagues });
-    }
+      if (this.storage) {
+        await this.storage.set({ leagueList: leagues });
+      }
       // Populate league dropdown
       this.elements.leagueSelect.innerHTML = UIComponents.createLeagueOptions(leagues);
       UIComponents.updateElement('matchups', 'Select a league to view your matchup.');
@@ -149,7 +149,7 @@ class PopupController {
 
     try {
       const matchupData = await this.matchupService.getMatchupData(
-        this.currentUsername, 
+        this.currentUsername,
         this.currentLeague
       );
 
@@ -165,7 +165,7 @@ class PopupController {
     const { league, week, myRoster, opponentRoster, myMatchup, opponentMatchup, userMap, allPlayers } = data;
 
     // Update week title
-UIComponents.updateElement('weektitle', `<h2 class="text-center">Week ${week} Matchup</h2>`);
+    UIComponents.updateElement('weektitle', `<h2 class="text-center">Week ${week} Matchup</h2>`);
     // Calculate projections for both teams
     const [myProjections, opponentProjections] = await Promise.all([
       this.matchupService.calculateProjectionsForRoster(
@@ -175,61 +175,58 @@ UIComponents.updateElement('weektitle', `<h2 class="text-center">Week ${week} Ma
         opponentRoster, opponentMatchup, league, allPlayers, data.season, week
       )
     ]);
-	
+
     // Render both rosters
     const myTeamName = userMap[myRoster.owner_id];
     const opponentTeamName = userMap[opponentRoster.owner_id];
-	const winProbability = this.matchupService.calculateWinProbability(
-	myProjections.totalCombined,
-	opponentProjections.totalCombined
-	);
-
-const html = `
-  <div class="rosters-container">
-    ${UIComponents.createRosterHTML(
-      myRoster, 
-      myMatchup, 
-      myProjections, 
-      myTeamName, 
+    const winProbability = this.matchupService.calculateWinProbability(
+      myProjections.totalCombined,
       opponentProjections.totalCombined
-    )}
+    );
 
+    const html = `
+  <div class="rosters-container">
     <!-- Win probability bar between rosters -->
     <div class="win-prob-bar">
-      <div class="win-prob-fill" style="width: ${winProbability}%; background-color: ${
-        winProbability >= 50 ? '#28a745' : '#dc3545'
+      <div class="win-prob-fill" style="width: ${winProbability}%; background-color: ${winProbability >= 50 ? '#28a745' : '#dc3545'
       }"></div>
       <span class="win-prob-text">${winProbability.toFixed(1)}% Win Probability</span>
     </div>
-
+  
     ${UIComponents.createRosterHTML(
-      opponentRoster, 
-      opponentMatchup, 
-      opponentProjections, 
-      opponentTeamName, 
-      myProjections.totalCombined
-    )}
+        myRoster,
+        myMatchup,
+        myProjections,
+        myTeamName,
+        opponentProjections.totalCombined
+      )} ${UIComponents.createRosterHTML(
+        opponentRoster,
+        opponentMatchup,
+        opponentProjections,
+        opponentTeamName,
+        myProjections.totalCombined
+      )}
   </div>
 `;
 
-	const probFill = document.querySelector('.win-prob-fill');
-	const probText = document.querySelector('.win-prob-text');
+    const probFill = document.querySelector('.win-prob-fill');
+    const probText = document.querySelector('.win-prob-text');
 
-if (probFill && probText) {
-  probFill.style.width = `${winProbability}%`;
-  probFill.style.background = winProbability >= 50 ? '#28a745' : '#dc3545';
-  probText.textContent = `${winProbability.toFixed(1)}%`;
-}
+    if (probFill && probText) {
+      probFill.style.width = `${winProbability}%`;
+      probFill.style.background = winProbability >= 50 ? '#28a745' : '#dc3545';
+      probText.textContent = `${winProbability.toFixed(1)}%`;
+    }
 
     UIComponents.updateElement('matchups', html);
-	
-	document.querySelectorAll('.roster-header').forEach(header => {
-  header.addEventListener('click', () => {
-    const rosterSection = header.parentElement;
-    rosterSection.classList.toggle('collapsed');
-  });
-});
-	
+
+    document.querySelectorAll('.roster-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const rosterSection = header.parentElement;
+        rosterSection.classList.toggle('collapsed');
+      });
+    });
+
   }
 
   showLiveButton() {
@@ -239,7 +236,7 @@ if (probFill && probText) {
   }
 
   openLivePage() {
-    const url = typeof chrome !== 'undefined' 
+    const url = typeof chrome !== 'undefined'
       ? chrome.runtime.getURL('live.html')
       : browser.runtime.getURL('live.html');
 

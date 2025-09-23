@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Live Matchup - Sleeper</title>
   <link rel="stylesheet" href="styles/main.css">
 </head>
+
 <body>
   <div class="live-container">
     <!-- League Name Header -->
-<div id="leagueName" class="league-header">
-  <!-- League Selector Dropdown -->
-  <select id="leagueSelectLive" class="league-select">
-    <option value="">Select a league...</option>
-  </select>
-    <button id="themeToggle" class="btn" type="button">🌙 Dark</button>
+    <div id="leagueName" class="league-header">
+      <!-- League Selector Dropdown -->
+      <select id="leagueSelectLive" class="league-select">
+        <option value="">Select a league...</option>
+      </select>
+      <button id="themeToggle" class="btn" type="button">🌙 Dark</button>
 
-</div>
+    </div>
 
     <!-- Matchup and Feed Panels Container -->
     <div class="panel-container">
@@ -42,17 +44,18 @@
   <script src="services/matchupService.js"></script>
   <script src="ui/components.js"></script>
   <script src="controllers/liveController.js"></script>
-  
+
   <!-- Player Stats Modal -->
-<div id="playerModal" class="modal hidden">
-  <div class="modal-content">
-    <span id="modalClose" class="modal-close">&times;</span>
-    <div id="modalBody">
-      <!-- Stats will be injected here -->
+  <div id="playerModal" class="modal hidden">
+    <div class="modal-content">
+      <span id="modalClose" class="modal-close">&times;</span>
+      <div id="modalBody">
+        <!-- Stats will be injected here -->
+      </div>
     </div>
   </div>
-</div>
-  
-  
+
+
 </body>
+
 </html>

@@ -31,8 +31,8 @@ class MatchupService {
       if (!myMatchup) throw new Error('No matchup found for current week');
 
       // Find opponent
-      const opponentMatchup = matchups.find(m => 
-        m.matchup_id === myMatchup.matchup_id && 
+      const opponentMatchup = matchups.find(m =>
+        m.matchup_id === myMatchup.matchup_id &&
         m.roster_id !== myRoster.roster_id
       );
       if (!opponentMatchup) throw new Error('Opponent matchup not found');
@@ -67,7 +67,7 @@ class MatchupService {
   async calculateProjectionsForRoster(roster, matchup, league, allPlayers, season, week) {
     const playerIds = matchup.starters || [];
     const projections = await this.api.batchPlayerProjections(playerIds, season, week);
-    
+
     let totalProjected = 0;
     let totalActual = 0;
     const playerData = [];
@@ -113,19 +113,19 @@ class MatchupService {
 
   isPlayerGameOver(player, actualPoints) {
     // Player has scored points or is inactive/out
-    return actualPoints > 0 || 
-           player?.status === 'Inactive' || 
-           player?.status === 'OUT';
+    return actualPoints > 0 ||
+      player?.status === 'Inactive' ||
+      player?.status === 'OUT';
   }
 
   calculateWinProbability(myTotal, opponentTotal) {
     if (myTotal + opponentTotal === 0) return 50;
-    
+
     // Use exponential weighting to make the probability more dramatic
     const weightFactor = 10;
     const myWeighted = Math.pow(myTotal * 0.8, weightFactor); // Slight discount for uncertainty
     const opponentWeighted = Math.pow(opponentTotal * 0.8, weightFactor);
-    
+
     return (myWeighted / (myWeighted + opponentWeighted)) * 100;
   }
 }
@@ -155,7 +155,7 @@ class ScoringCalculator {
 
   getPlayerStatusClass(player) {
     const status = player?.status || 'ACTIVE';
-    
+
     switch (status) {
       case 'Active':
       case 'ACTIVE':

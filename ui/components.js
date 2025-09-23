@@ -1,12 +1,12 @@
 // ui/components.js - Reusable UI components
 class UIComponents {
-static createRosterHTML(roster, matchup, projectionData, teamName, opponentTotal = null) {
-  const total = matchup.points || 0;
-  const projectedTotal = projectionData.totalCombined;
+  static createRosterHTML(roster, matchup, projectionData, teamName, opponentTotal = null) {
+    const total = matchup.points || 0;
+    const projectedTotal = projectionData.totalCombined;
 
-  const colorClass = this.getScoreColorClass(total, opponentTotal);
+    const colorClass = this.getScoreColorClass(total, opponentTotal);
 
-return `
+    return `
   <div class="roster-section collapsed"> 
     <div class="roster-header">
       <h3 class="matchup-header">
@@ -24,16 +24,16 @@ return `
     </div>
   </div>
 `;
-}
+  }
 
-static createPlayerListHTML(playerData) {
-  return playerData.map(data => {
-    const { id, player, actualPoints, projectedPoints, position } = data;
-    const displayPosition = position === 'SUPER_FLEX' ? 'SF' : position;
-    const statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
-    const playerName = player?.full_name || 'Unknown Player';
+  static createPlayerListHTML(playerData) {
+    return playerData.map(data => {
+      const { id, player, actualPoints, projectedPoints, position } = data;
+      const displayPosition = position === 'SUPER_FLEX' ? 'SF' : position;
+      const statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
+      const playerName = player?.full_name || 'Unknown Player';
 
-    return `
+      return `
 <li id="player-${id}" class="player-item ${statusClass}">
   <span class="player-top">
     <span class="position">${displayPosition}</span> - 
@@ -43,8 +43,8 @@ static createPlayerListHTML(playerData) {
   <span class="projection">Projected: ${projectedPoints.toFixed(1)}</span>
 </li>
     `;
-  }).join('');
-}
+    }).join('');
+  }
 
   static getScoreColorClass(myScore, opponentScore) {
     if (!opponentScore) return '';
@@ -73,7 +73,7 @@ static createPlayerListHTML(playerData) {
       element.innerHTML = content;
     }
   }
-  
+
 
 
   static createToast(message, type = 'success') {
@@ -96,10 +96,10 @@ static createPlayerListHTML(playerData) {
 
   static createLeagueOptions(leagues) {
     const defaultOption = '<option value="" selected disabled>Select a league...</option>';
-    const leagueOptions = leagues.map(league => 
+    const leagueOptions = leagues.map(league =>
       `<option value="${league.league_id}">${league.name}</option>`
     ).join('');
-    
+
     return defaultOption + leagueOptions;
   }
 
@@ -125,11 +125,11 @@ class ScoringFeed {
     playerData.forEach(data => {
       const { id, player, actualPoints } = data;
       const previousScore = this.lastScores.get(id) || 0;
-      
+
       if (actualPoints !== previousScore && previousScore > 0) {
         this.addFeedItem(player, actualPoints - previousScore, userMap, rosterId);
       }
-      
+
       this.lastScores.set(id, actualPoints);
     });
   }
@@ -160,7 +160,7 @@ class ScoringFeed {
 
   trimFeedItems(maxItems = 50) {
     if (!this.feedElement) return;
-    
+
     const items = this.feedElement.querySelectorAll('.feed-item');
     if (items.length > maxItems) {
       for (let i = maxItems; i < items.length; i++) {

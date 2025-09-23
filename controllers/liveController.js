@@ -5,15 +5,15 @@ class LiveController {
     this.matchupService = new MatchupService(this.api);
     this.scoringFeed = new ScoringFeed();
     this.storage = this.getStorageAPI();
-    
+
     this.updateInterval = null;
     this.isInitialLoad = true;
     this.currentMatchupData = null;
     this.currentSeason = null;
     this.currentWeek = null;
-    
+
     this.initializePage();
-	this.expandedSections = {}
+    this.expandedSections = {}
   }
 
   getStorageAPI() {
@@ -26,55 +26,55 @@ class LiveController {
   }
 
 
-async initializePage() {
-  this.storage = this.getStorageAPI();
+  async initializePage() {
+    this.storage = this.getStorageAPI();
 
-  if (!this.storage) {
-    this.showError('No league or username found. Please set them in the popup.');
-    return;
-  }
-
-  // Theme setup
-  try {
-    const savedTheme = await this.storage.get('theme');
-    const theme = savedTheme?.theme || 'light';
-    this.applyTheme(theme);
-
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-      themeToggle.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
-      themeToggle.addEventListener('click', async () => {
-        const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
-        this.applyTheme(newTheme);
-        themeToggle.textContent = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
-        if (this.storage) await this.storage.set({ theme: newTheme });
-      });
-    }
-  } catch (err) {
-    console.error('Error initializing theme:', err);
-  }
-
-  // Load league & user data
-  try {
-    const saved = await this.storage.get(['selectedLeague', 'username', 'leagueList']);
-    const { selectedLeague: leagueId, username } = saved;
-
-    this.currentUsername = username || null;
-
-    // Populate league dropdown
-    await this.populateLeagueDropdown();
-
-    // Start live updates if both league and username exist
-    if (username && leagueId) {
-      this.currentLeague = leagueId;
-      await this.startLiveUpdates(leagueId, username);
+    if (!this.storage) {
+      this.showError('No league or username found. Please set them in the popup.');
+      return;
     }
 
-  } catch (error) {
-    console.error('Error initializing live page:', error);
-    this.showError('Failed to initialize live scoring.');
+    // Theme setup
+    try {
+      const savedTheme = await this.storage.get('theme');
+      const theme = savedTheme?.theme || 'light';
+      this.applyTheme(theme);
+
+      const themeToggle = document.getElementById('themeToggle');
+      if (themeToggle) {
+        themeToggle.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        themeToggle.addEventListener('click', async () => {
+          const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
+          this.applyTheme(newTheme);
+          themeToggle.textContent = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+          if (this.storage) await this.storage.set({ theme: newTheme });
+        });
+      }
+    } catch (err) {
+      console.error('Error initializing theme:', err);
+    }
+
+    // Load league & user data
+    try {
+      const saved = await this.storage.get(['selectedLeague', 'username', 'leagueList']);
+      const { selectedLeague: leagueId, username } = saved;
+
+      this.currentUsername = username || null;
+
+      // Populate league dropdown
+      await this.populateLeagueDropdown();
+
+      // Start live updates if both league and username exist
+      if (username && leagueId) {
+        this.currentLeague = leagueId;
+        await this.startLiveUpdates(leagueId, username);
+      }
+
+    } catch (error) {
+      console.error('Error initializing live page:', error);
+      this.showError('Failed to initialize live scoring.');
+    }
   }
-}
 
 
   async startLiveUpdates(leagueId, username) {
@@ -134,13 +134,13 @@ async initializePage() {
     // Render HTML
     const html = `
       <div class="rosters-container">
-        ${this.createLiveRosterHTML(myRoster, myMatchup, myProjections, userMap[myRoster.owner_id], opponentProjections.totalCombined)}
-        <div class="win-prob-bar">
-          <div class="win-prob-fill" style="width: ${winProbability}%; background-color: ${
-            winProbability >= 50 ? '#28a745' : '#dc3545'
-          }"></div>
+	          <div class="win-prob-bar">
+          <div class="win-prob-fill" style="width: ${winProbability}%; background-color: ${winProbability >= 50 ? '#28a745' : '#dc3545'}"></div>
           <span class="win-prob-text">${winProbability.toFixed(1)}% Win Probability</span>
         </div>
+       
+	  
+        ${this.createLiveRosterHTML(myRoster, myMatchup, myProjections, userMap[myRoster.owner_id], opponentProjections.totalCombined)}
         ${this.createLiveRosterHTML(opponentRoster, opponentMatchup, opponentProjections, userMap[opponentRoster.owner_id], myProjections.totalCombined)}
       </div>
     `;
@@ -151,24 +151,24 @@ async initializePage() {
     this.attachPlayerClickListener();
 
     // Attach collapse listener
-document.querySelectorAll('.roster-section').forEach((section, index) => {
-  const sectionId = section.dataset.sectionId || `section-${index}`; 
-  section.dataset.sectionId = sectionId; // ensure each section has a stable ID
+    document.querySelectorAll('.roster-section').forEach((section, index) => {
+      const sectionId = section.dataset.sectionId || `section-${index}`;
+      section.dataset.sectionId = sectionId; // ensure each section has a stable ID
 
-  // Restore previous state if exists
-  if (this.expandedSections[sectionId]) {
-    section.classList.remove('collapsed');
-  }
+      // Restore previous state if exists
+      if (this.expandedSections[sectionId]) {
+        section.classList.remove('collapsed');
+      }
 
-  // Attach toggle listener
-  const header = section.querySelector('.roster-header');
-  if (header) {
-    header.addEventListener('click', () => {
-      const isCollapsed = section.classList.toggle('collapsed');
-      this.expandedSections[sectionId] = !isCollapsed; // true if expanded
+      // Attach toggle listener
+      const header = section.querySelector('.roster-header');
+      if (header) {
+        header.addEventListener('click', () => {
+          const isCollapsed = section.classList.toggle('collapsed');
+          this.expandedSections[sectionId] = !isCollapsed; // true if expanded
+        });
+      }
     });
-  }
-});
 
 
     // Update scoring feed after initial load
@@ -177,13 +177,13 @@ document.querySelectorAll('.roster-section').forEach((section, index) => {
     }
   }
 
-createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal) {
-  const total = matchup.points || 0;
-  const projectedTotal = projectionData.totalCombined;
-  const colorClass = UIComponents.getScoreColorClass(total, opponentTotal);
-  const sectionId = `roster-${roster.owner_id}`; // use owner ID as stable identifier
+  createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal) {
+    const total = matchup.points || 0;
+    const projectedTotal = projectionData.totalCombined;
+    const colorClass = UIComponents.getScoreColorClass(total, opponentTotal);
+    const sectionId = `roster-${roster.owner_id}`; // use owner ID as stable identifier
 
-  return `
+    return `
     <div class="roster-section collapsed" data-section-id="${sectionId}">
       <h3 class="matchup-header roster-header">
         ${teamName}
@@ -200,17 +200,17 @@ createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal) {
       </div>
     </div>
   `;
-}
+  }
 
-createLivePlayerListHTML(playerData) {
-  return playerData.map(data => {
-    const { id, player, actualPoints, projectedPoints, position } = data;
-    const displayPosition = UIComponents.formatPosition(position);
-    const statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
-    const playerName = player?.full_name || 'Unknown Player';
-    const playerNameSafe = playerName.replace(/"/g, '&quot;');
+  createLivePlayerListHTML(playerData) {
+    return playerData.map(data => {
+      const { id, player, actualPoints, projectedPoints, position } = data;
+      const displayPosition = UIComponents.formatPosition(position);
+      const statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
+      const playerName = player?.full_name || 'Unknown Player';
+      const playerNameSafe = playerName.replace(/"/g, '&quot;');
 
-    return `
+      return `
       <li id="player-${id}" class="player-item ${statusClass}">
         <span class="player-top">
           <span class="position">${displayPosition}</span> - 
@@ -222,62 +222,62 @@ createLivePlayerListHTML(playerData) {
         <span class="projection">Projected: ${projectedPoints.toFixed(1)}</span>
       </li>
     `;
-  }).join('');
-}
+    }).join('');
+  }
 
-attachPlayerClickListener() {
-  const statNameMap = {
-    pass_cmp: "Completions",
-    pass_att: "Pass Attempts",
-    pass_yd: "Passing Yards",
-    pass_td: "Passing TDs",
-    pass_int: "Interceptions",
-    pass_rtg: "Pass Rating",
-    pass_lng: "Longest Pass",
-    pass_ypa: "Yards/Attempt",
-    pass_ypc: "Yards/Completion",
-    rush_att: "Rush Attempts",
-    rush_yd: "Rushing Yards",
-    rush_td: "Rushing TDs",
-    rush_lng: "Longest Rush",
-    rush_fd: "Rushing First Downs",
-    rec: "Receptions",
-    rec_yd: "Receiving Yards",
-    rec_td: "Receiving TDs",
-    rec_lng: "Longest Reception",
-    rec_fd: "Receiving First Downs",
-    fum: "Fumbles",
-  };
+  attachPlayerClickListener() {
+    const statNameMap = {
+      pass_cmp: "Completions",
+      pass_att: "Pass Attempts",
+      pass_yd: "Passing Yards",
+      pass_td: "Passing TDs",
+      pass_int: "Interceptions",
+      pass_rtg: "Pass Rating",
+      pass_lng: "Longest Pass",
+      pass_ypa: "Yards/Attempt",
+      pass_ypc: "Yards/Completion",
+      rush_att: "Rush Attempts",
+      rush_yd: "Rushing Yards",
+      rush_td: "Rushing TDs",
+      rush_lng: "Longest Rush",
+      rush_fd: "Rushing First Downs",
+      rec: "Receptions",
+      rec_yd: "Receiving Yards",
+      rec_td: "Receiving TDs",
+      rec_lng: "Longest Reception",
+      rec_fd: "Receiving First Downs",
+      fum: "Fumbles",
+    };
 
-  document.getElementById('matchups').addEventListener('click', async (e) => {
-    const link = e.target.closest('.player-link');
-    if (!link) return;
-    e.preventDefault();
+    document.getElementById('matchups').addEventListener('click', async (e) => {
+      const link = e.target.closest('.player-link');
+      if (!link) return;
+      e.preventDefault();
 
-    const playerId = link.closest('.player-item')?.id?.replace('player-', '');
-    if (!playerId) return;
+      const playerId = link.closest('.player-item')?.id?.replace('player-', '');
+      if (!playerId) return;
 
-    const modal = document.getElementById('playerModal');
-    const modalBody = document.getElementById('modalBody');
+      const modal = document.getElementById('playerModal');
+      const modalBody = document.getElementById('modalBody');
 
-    const playerData = await this.api.getPlayerDetails(playerId, this.currentSeason, this.currentWeek);
+      const playerData = await this.api.getPlayerDetails(playerId, this.currentSeason, this.currentWeek);
 
-    if (!playerData) {
-      modalBody.innerHTML = '<p>No stats available for this week.</p>';
-      modal.classList.remove('hidden');
-      return;
-    }
+      if (!playerData) {
+        modalBody.innerHTML = '<p>No stats available for this week.</p>';
+        modal.classList.remove('hidden');
+        return;
+      }
 
-    const statsHtml = Object.entries(statNameMap)
-      .filter(([key]) => playerData[key] !== undefined && playerData[key] !== null)
-      .map(([key, displayName]) => {
-        const value = playerData[key];
-        const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
-        return `<li><strong>${displayName}:</strong> ${displayValue}</li>`;
-      })
-      .join('');
+      const statsHtml = Object.entries(statNameMap)
+        .filter(([key]) => playerData[key] !== undefined && playerData[key] !== null)
+        .map(([key, displayName]) => {
+          const value = playerData[key];
+          const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
+          return `<li><strong>${displayName}:</strong> ${displayValue}</li>`;
+        })
+        .join('');
 
-    modalBody.innerHTML = `
+      modalBody.innerHTML = `
       <h2>${playerData.full_name}</h2>
       <p><strong>Position:</strong> ${playerData.position}</p>
       <p><strong>Team:</strong> ${playerData.team}</p>
@@ -288,79 +288,79 @@ attachPlayerClickListener() {
       </ul>
     `;
 
-    modal.classList.remove('hidden');
+      modal.classList.remove('hidden');
 
-    document.getElementById('modalClose').onclick = () => modal.classList.add('hidden');
-    window.onclick = (event) => { if (event.target === modal) modal.classList.add('hidden'); };
-  });
-}
+      document.getElementById('modalClose').onclick = () => modal.classList.add('hidden');
+      window.onclick = (event) => { if (event.target === modal) modal.classList.add('hidden'); };
+    });
+  }
 
-async populateLeagueDropdown() {
-  if (!this.storage) return;
+  async populateLeagueDropdown() {
+    if (!this.storage) return;
 
-  try {
-    const saved = await this.storage.get(['leagueList', 'selectedLeague']);
-    const leagues = saved.leagueList || [];
-    if (!leagues.length) return;
+    try {
+      const saved = await this.storage.get(['leagueList', 'selectedLeague']);
+      const leagues = saved.leagueList || [];
+      if (!leagues.length) return;
 
+      const select = document.getElementById('leagueSelectLive');
+      select.innerHTML = UIComponents.createLeagueOptions(leagues);
+
+      // Set current league if exists
+      if (saved.selectedLeague) {
+        this.currentLeague = saved.selectedLeague;
+        select.value = this.currentLeague;
+      }
+
+      // Attach change listener
+      select.addEventListener('change', async (e) => {
+        const leagueId = e.target.value;
+        if (!leagueId) return;
+
+        this.currentLeague = leagueId;
+
+        // Save the selection
+        if (this.storage) await this.storage.set({ selectedLeague: leagueId });
+
+        // Reload matchup data
+        if (this.currentUsername && this.currentLeague) {
+          await this.updateMatchupData(this.currentLeague, this.currentUsername);
+        }
+      });
+
+    } catch (err) {
+      console.error('Error populating league dropdown:', err);
+    }
+  }
+
+  updatePageHeader(leagueName, week) {
+    // Instead of touching <h1>, update the <select> label if needed
     const select = document.getElementById('leagueSelectLive');
-    select.innerHTML = UIComponents.createLeagueOptions(leagues);
-
-    // Set current league if exists
-    if (saved.selectedLeague) {
-      this.currentLeague = saved.selectedLeague;
-      select.value = this.currentLeague;
+    if (select && select.value) {
+      const option = [...select.options].find(opt => opt.value === select.value);
+      if (option) option.textContent = leagueName;
     }
 
-    // Attach change listener
-    select.addEventListener('change', async (e) => {
-      const leagueId = e.target.value;
-      if (!leagueId) return;
-
-      this.currentLeague = leagueId;
-
-      // Save the selection
-      if (this.storage) await this.storage.set({ selectedLeague: leagueId });
-
-      // Reload matchup data
-      if (this.currentUsername && this.currentLeague) {
-        await this.updateMatchupData(this.currentLeague, this.currentUsername);
-      }
-    });
-
-  } catch (err) {
-    console.error('Error populating league dropdown:', err);
-  }
-}
-
-updatePageHeader(leagueName, week) {
-  // Instead of touching <h1>, update the <select> label if needed
-  const select = document.getElementById('leagueSelectLive');
-  if (select && select.value) {
-    const option = [...select.options].find(opt => opt.value === select.value);
-    if (option) option.textContent = leagueName;
+    const matchupPanel = document.getElementById('matchupPanel');
+    if (matchupPanel) {
+      const h3 = matchupPanel.querySelector('h3');
+      if (h3) h3.innerHTML = `Week ${week} Matchup`;
+    }
   }
 
-  const matchupPanel = document.getElementById('matchupPanel');
-  if (matchupPanel) {
-    const h3 = matchupPanel.querySelector('h3');
-    if (h3) h3.innerHTML = `Week ${week} Matchup`;
+  applyTheme(theme) {
+    document.body.classList.remove('light', 'dark');
+    document.body.classList.add(theme);
   }
-}
-
-applyTheme(theme) {
-  document.body.classList.remove('light', 'dark');
-  document.body.classList.add(theme);
-}
 
 
-updateScoringFeed(myProjections, opponentProjections, userMap, myOwnerId, opponentOwnerId) {
-  // Clear previous score deltas so we only notify once per change
-  this.scoringFeed.clear();  
+  updateScoringFeed(myProjections, opponentProjections, userMap, myOwnerId, opponentOwnerId) {
+    // Clear previous score deltas so we only notify once per change
+    this.scoringFeed.clear();
 
-  this.scoringFeed.updatePlayerScores(myProjections.playerData, userMap, myOwnerId);
-  this.scoringFeed.updatePlayerScores(opponentProjections.playerData, userMap, opponentOwnerId);
-}
+    this.scoringFeed.updatePlayerScores(myProjections.playerData, userMap, myOwnerId);
+    this.scoringFeed.updatePlayerScores(opponentProjections.playerData, userMap, opponentOwnerId);
+  }
 
   showError(message) {
     UIComponents.showError('matchups', message);
