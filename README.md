@@ -1,4 +1,4 @@
-# Sleeper Live Scoring Tracker
+# Fantasy Live Scoring Extension
 
 This browser extension provides live matchup updates, scoring feeds, and player projections for your Sleeper fantasy football leagues. Track your current matchup in real-time, view win probabilities, and manage your league selections with ease.
 
