@@ -235,17 +235,23 @@ class PopupController {
     }
   }
 
-  openLivePage() {
-    const url = typeof chrome !== 'undefined'
-      ? chrome.runtime.getURL('live.html')
-      : browser.runtime.getURL('live.html');
+openLivePage() {
+  const url = (typeof chrome !== 'undefined')
+    ? chrome.runtime.getURL('live.html')
+    : browser.runtime.getURL('live.html');
 
-    if (typeof chrome !== 'undefined') {
-      chrome.tabs.create({ url });
-    } else if (typeof browser !== 'undefined') {
-      browser.tabs.create({ url });
+  const api = typeof chrome !== 'undefined' ? chrome : browser;
+
+  api.tabs.query({ url }, (tabs) => {
+    if (tabs && tabs.length > 0) {
+      // Focus the first one instead of opening a new tab
+      api.tabs.update(tabs[0].id, { active: true });
+    } else {
+      // Otherwise, create it
+      api.tabs.create({ url });
     }
-  }
+  });
+}
   applyTheme(theme) {
     document.body.classList.remove('light', 'dark');
     document.body.classList.add(theme);
