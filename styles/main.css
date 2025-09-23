@@ -179,10 +179,7 @@ select {
 
 .text-center {
   text-align: center;
-  margin: 0 0 6px 0px;
   /* top 0, right 0, bottom 0, left 8px */
-  padding: 2px 0;
-  /* optional: small vertical padding */
 }
 
 .league-select {
@@ -265,10 +262,10 @@ select {
 .rosters-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
   background: var(--panel-bg); /* ensures dark mode panel color fills behind */
-  border-radius: 8px;          /* optional, matches cards */
-  padding: 4px 0;               /* optional, adds a little breathing room */
+  border-radius: 8px; 
+   gap: 16px;       
 }
 
 .roster-section {

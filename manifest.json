@@ -1,24 +1,20 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Sleeper Live Scores",
   "version": "2.0",
   "description": "Live matchup updates from your Sleeper fantasy football league with improved performance and reliability.",
   "permissions": [
     "storage",
     "notifications",
-    "alarms",
+    "alarms"
+  ],
+    "host_permissions": [
     "https://api.sleeper.app/*",
     "https://api.sleeper.com/*"
   ],
-  "browser_action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon.png"
-  },
-  "background": {
-    "scripts": [
-      "background.js"
-    ],
-    "persistent": false
-  },
-  "content_security_policy": "script-src 'self'; object-src 'self'"
+  "action": {
+  "default_popup": "popup.html"
+},  "content_security_policy": {
+    "extension_pages": "script-src 'self';"
+  }
 }
