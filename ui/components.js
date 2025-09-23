@@ -171,7 +171,7 @@ class ScoringFeed {
     }
   }
 
-  clear() {
+  clearFeed() {
     this.lastScores.clear();
     if (this.feedElement) {
       this.feedElement.innerHTML = '';

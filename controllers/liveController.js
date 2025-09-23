@@ -320,9 +320,12 @@ const html = `
 
       // Attach change listener
       select.addEventListener('change', async (e) => {
-        this.scoringFeed.clear();
         const leagueId = e.target.value;
         if (!leagueId) return;
+		
+		if (this.scoringFeed) {
+			this.scoringFeed.clearFeed();
+		}
 
         this.currentLeague = leagueId;
 
@@ -335,6 +338,7 @@ const html = `
         }
       });
 
+		
     } catch (err) {
       console.error('Error populating league dropdown:', err);
     }
