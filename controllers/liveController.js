@@ -261,7 +261,6 @@ attachPlayerClickListener() {
     const modalBody = document.getElementById('modalBody');
 
     const playerData = await this.api.getPlayerDetails(playerId, this.currentSeason, this.currentWeek);
-    console.log('Player data returned from getPlayerStats:', playerData);
 
     if (!playerData) {
       modalBody.innerHTML = '<p>No stats available for this week.</p>';

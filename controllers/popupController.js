@@ -165,8 +165,7 @@ class PopupController {
     const { league, week, myRoster, opponentRoster, myMatchup, opponentMatchup, userMap, allPlayers } = data;
 
     // Update week title
-    UIComponents.updateElement('weektitle', `<h2>Week ${week} Matchup</h2>`);
-
+UIComponents.updateElement('weektitle', `<h2 class="text-center">Week ${week} Matchup</h2>`);
     // Calculate projections for both teams
     const [myProjections, opponentProjections] = await Promise.all([
       this.matchupService.calculateProjectionsForRoster(

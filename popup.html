@@ -3,31 +3,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Sleeper Live Scores</title>
-  <span><button id="themeToggle" class="btn" type="button">🌙 Dark</button></span>
 
   <link rel="stylesheet" href="styles/main.css">
 </head>
-<div class="header-row">
-  <h2 class="popup-header">Sleeper Live</h2>
-</div>
+<div class="popup-body">
+  <div class="header-row">
+    <h2 class="popup-header">Sleeper Live</h2>
+	  <button id="themeToggle" class="btn" type="button">🌙 Dark</button>
 
-<div class="username-section">
-  <input type="text" id="username" placeholder="Enter your Sleeper username">
-  <button id="loadBtn" class="btn">Load</button>
-</div>
-
-<div class="league-section">
-  <select id="leagueSelect">
-    <option value="">Select a league...</option>
-  </select>
-</div>
-
-<div id="weektitle"></div>
-<button id="liveBtn" class="btn btn-full hidden">Live Scoring</button>
-
-<div id="matchups"></div>
   </div>
+
+  <div class="username-section">
+    <input type="text" id="username" placeholder="Enter your Sleeper username">
+    <button id="loadBtn" class="btn">Load</button>
+  </div>
+
+  <div class="league-section">
+    <select id="leagueSelect">
+      <option value="">Select a league...</option>
+    </select>
+  </div>
+<div id="weektitle"></div>
+  <button id="liveBtn" class="btn btn-full hidden">Live Scoring</button>
+
+  <div id="matchups"></div>
+  
+</div>
 
   <!-- Include all JavaScript files -->
   <script src="api/sleeperApi.js"></script>
