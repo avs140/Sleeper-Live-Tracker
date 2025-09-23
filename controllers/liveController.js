@@ -147,6 +147,11 @@ class LiveController {
 
     UIComponents.updateElement('matchups', html);
 
+    // Re-initialize scoring feed DOM elements
+//this.scoringFeed.clear();
+this.scoringFeed.updatePlayerScores(myProjections.playerData, userMap, myRoster.owner_id);
+this.scoringFeed.updatePlayerScores(opponentProjections.playerData, userMap, opponentRoster.owner_id);
+
     // Attach click listener for player modal
     this.attachPlayerClickListener();
 
@@ -170,11 +175,6 @@ class LiveController {
       }
     });
 
-
-    // Update scoring feed after initial load
-    if (!this.isInitialLoad) {
-      this.updateScoringFeed(myProjections, opponentProjections, userMap, myRoster.owner_id, opponentRoster.owner_id);
-    }
   }
 
   createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal) {
@@ -314,6 +314,7 @@ class LiveController {
 
       // Attach change listener
       select.addEventListener('change', async (e) => {
+        this.scoringFeed.clear();
         const leagueId = e.target.value;
         if (!leagueId) return;
 
