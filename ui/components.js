@@ -12,7 +12,7 @@ class UIComponents {
       <h3 class="matchup-header">
         ${teamName} <span class="points ${colorClass}">${total.toFixed(1)}</span>
       </h3>
-      <span class="toggle-btn">▼</span>
+      <span class="toggle-btn">▾</span>
     </div>
     <h4 class="matchup-subheader">
 	  <span class="projection-inline">Projected: ${projectedTotal.toFixed(1)}</span>

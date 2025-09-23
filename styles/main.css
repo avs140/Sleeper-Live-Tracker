@@ -282,12 +282,29 @@ select {
 .roster-section.collapsed .player-list-container {
   max-height: 0;
   overflow: hidden;
+  transition: max-height 0.25s ease;
 }
 
+.roster-section:not(.collapsed) .player-list-container {
+  max-height: 900px; /* or something large enough to fit all players */
+  overflow: visible;
+  transition: max-height 0.25s ease;
+}
 .player-list-container {
   transition: max-height 0.25s ease;
   max-height: 900px;
 }
+
+.roster-section.collapsed .toggle-btn {
+  transform: rotate(90deg);
+  transition: transform 0.3s;
+}
+
+.roster-section:not(.collapsed) .toggle-btn {
+  transform: rotate(0deg);
+  transition: transform 0.3s;
+}
+
 
 .roster-header {
   display: flex;
@@ -306,6 +323,18 @@ select {
   gap: 8px;
   align-items: center;
 }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* space between points and toggle */
+}
+
+.matchup-header .points {
+  flex-shrink: 0; /* prevent shrinking */
+}
+
+
 
 .matchup-subheader {
   margin: 6px 0 10px;
@@ -371,11 +400,23 @@ select {
   font-size: 0.75rem;
 }
 
-.player-link {
-  color: var(--link-color);
-  text-decoration: none;
+.player-top {
+  display: flex;
+  justify-content: space-between; /* left, center, right spacing */
+  align-items: center;
+  gap: 10px; /* optional spacing between items */
 }
 
+body.light .player-link {
+  color: #1a1a1a; /* dark gray for light backgrounds */
+}
+
+/* Dark mode */
+body.dark .player-link {
+  color: #f0f0f0; /* light gray/white for dark backgrounds */
+}
+
+/* Optional: keep underline on hover */
 .player-link:hover {
   text-decoration: underline;
 }

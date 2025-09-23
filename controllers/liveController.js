@@ -148,9 +148,9 @@ class LiveController {
     UIComponents.updateElement('matchups', html);
 
     // Re-initialize scoring feed DOM elements
-//this.scoringFeed.clear();
-this.scoringFeed.updatePlayerScores(myProjections.playerData, userMap, myRoster.owner_id);
-this.scoringFeed.updatePlayerScores(opponentProjections.playerData, userMap, opponentRoster.owner_id);
+    //this.scoringFeed.clear();
+    this.scoringFeed.updatePlayerScores(myProjections.playerData, userMap, myRoster.owner_id);
+    this.scoringFeed.updatePlayerScores(opponentProjections.playerData, userMap, opponentRoster.owner_id);
 
     // Attach click listener for player modal
     this.attachPlayerClickListener();
@@ -183,23 +183,25 @@ this.scoringFeed.updatePlayerScores(opponentProjections.playerData, userMap, opp
     const colorClass = UIComponents.getScoreColorClass(total, opponentTotal);
     const sectionId = `roster-${roster.owner_id}`; // use owner ID as stable identifier
 
-    return `
-    <div class="roster-section collapsed" data-section-id="${sectionId}">
-      <h3 class="matchup-header roster-header">
-        ${teamName}
-        <span class="points ${colorClass}">${total.toFixed(1)}</span>
-        <span class="toggle-btn">▾</span>
-      </h3>
-      <h4 class="matchup-subheader">
-        Projected Total: <span>${projectedTotal.toFixed(1)}</span>
-      </h4>
-      <div class="player-list-container">
-        <ul class="player-list">
-          ${this.createLivePlayerListHTML(projectionData.playerData)}
-        </ul>
-      </div>
+   return `
+<div class="roster-section collapsed" data-section-id="${sectionId}">
+  <h3 class="matchup-header roster-header">
+    <span class="team-name">${teamName}</span>
+    <div class="header-right">
+      <span class="points ${colorClass}">${total.toFixed(1)}</span>
+      <span class="toggle-btn">▾</span>
     </div>
-  `;
+  </h3>
+  <h4 class="matchup-subheader">
+    Projected Total: <span>${projectedTotal.toFixed(1)}</span>
+  </h4>
+  <div class="player-list-container">
+    <ul class="player-list">
+      ${this.createLivePlayerListHTML(projectionData.playerData)}
+    </ul>
+  </div>
+</div>
+`;
   }
 
   createLivePlayerListHTML(playerData) {
@@ -211,17 +213,17 @@ this.scoringFeed.updatePlayerScores(opponentProjections.playerData, userMap, opp
       const playerNameSafe = playerName.replace(/"/g, '&quot;');
 
       return `
-      <li id="player-${id}" class="player-item ${statusClass}">
-        <span class="player-top">
-          <span class="position">${displayPosition}</span> - 
-          <a href="#" class="player-link" data-player-id="${id}" data-player-name="${playerNameSafe}" data-player-position="${displayPosition}"style="text-decoration: underline;">
-            <span class="player">${playerName}</span>
-          </a>
-          <span class="points">${actualPoints.toFixed(1)} pts</span>
-        </span>
-        <span class="projection">Projected: ${projectedPoints.toFixed(1)}</span>
-      </li>
-    `;
+<li id="player-${id}" class="player-item ${statusClass}">
+  <div class="player-top">
+    <span class="position">${displayPosition}</span>
+    <a href="#" class="player-link" data-player-id="${id}" data-player-name="${playerNameSafe}" data-player-position="${displayPosition}" style="text-decoration: underline;">
+      ${playerName}
+    </a>
+    <span class="points">${actualPoints.toFixed(1)} pts</span>
+  </div>
+  <div class="projection">Projected: ${projectedPoints.toFixed(1)}</div>
+</li>
+`;
     }).join('');
   }
 
