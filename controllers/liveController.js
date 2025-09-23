@@ -14,6 +14,25 @@ class LiveController {
 
     this.initializePage();
     this.expandedSections = {}
+
+if (chrome && chrome.storage) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.selectedLeague) {
+      const newLeague = changes.selectedLeague.newValue;
+
+      // Optional: clear feed first
+      if (this.scoringFeed) this.scoringFeed.clearFeed();
+
+      // Refresh live page for new league
+      location.reload();
+    }
+  });
+}
+
+
+
+
+
   }
 
   getStorageAPI() {
@@ -132,10 +151,10 @@ class LiveController {
     const winProbability = this.matchupService.calculateWinProbability(myProjections.totalCombined, opponentProjections.totalCombined);
 
 
-const myIsWinning = myTotal > opponentTotal;
-const oppIsWinning = opponentTotal > myTotal;
+    const myIsWinning = myTotal > opponentTotal;
+    const oppIsWinning = opponentTotal > myTotal;
 
-const html = `
+    const html = `
   <div class="rosters-container">
     <div class="win-prob-bar">
       <div class="win-prob-fill" style="width: ${winProbability}%; background-color: ${winProbability >= 50 ? '#28a745' : '#dc3545'}"></div>
@@ -180,14 +199,14 @@ const html = `
   }
 
   createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal, isWinning) {
-  const total = matchup.points || 0;
-  const projectedTotal = projectionData.totalCombined;
-  const colorClass = UIComponents.getScoreColorClass(total, opponentTotal);
-  const sectionId = `roster-${roster.owner_id}`; // stable ID
+    const total = matchup.points || 0;
+    const projectedTotal = projectionData.totalCombined;
+    const colorClass = UIComponents.getScoreColorClass(total, opponentTotal);
+    const sectionId = `roster-${roster.owner_id}`; // stable ID
 
-  const winningClass = isWinning ? 'winning' : ''; // <-- dynamically add winning
+    const winningClass = isWinning ? 'winning' : ''; // <-- dynamically add winning
 
-  return `
+    return `
 <div class="roster-section collapsed ${winningClass}" data-section-id="${sectionId}">
   <h3 class="matchup-header roster-header">
     <span class="team-name">${teamName}</span>
@@ -206,7 +225,7 @@ const html = `
   </div>
 </div>
 `;
-}
+  }
 
   createLivePlayerListHTML(playerData) {
     return playerData.map(data => {
@@ -310,35 +329,38 @@ const html = `
       if (!leagues.length) return;
 
       const select = document.getElementById('leagueSelectLive');
+
+      // Clear and populate options
       select.innerHTML = UIComponents.createLeagueOptions(leagues);
 
-      // Set current league if exists
-      if (saved.selectedLeague) {
-        this.currentLeague = saved.selectedLeague;
-        select.value = this.currentLeague;
-      }
+      // Remove old listeners by cloning
+      const newSelect = select.cloneNode(true);
+      select.parentNode.replaceChild(newSelect, select);
 
       // Attach change listener
-      select.addEventListener('change', async (e) => {
+      newSelect.addEventListener('change', async (e) => {
         const leagueId = e.target.value;
         if (!leagueId) return;
-		
-		if (this.scoringFeed) {
-			this.scoringFeed.clearFeed();
-		}
+
+        if (this.scoringFeed) {
+          this.scoringFeed.clearFeed();
+        }
 
         this.currentLeague = leagueId;
 
-        // Save the selection
         if (this.storage) await this.storage.set({ selectedLeague: leagueId });
 
-        // Reload matchup data
         if (this.currentUsername && this.currentLeague) {
           await this.updateMatchupData(this.currentLeague, this.currentUsername);
         }
       });
 
-		
+      // Now set the selected value **after replacing and attaching listener**
+      if (saved.selectedLeague) {
+        this.currentLeague = saved.selectedLeague;
+        newSelect.value = this.currentLeague;
+      }
+
     } catch (err) {
       console.error('Error populating league dropdown:', err);
     }
