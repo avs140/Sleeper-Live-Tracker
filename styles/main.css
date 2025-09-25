@@ -52,7 +52,6 @@ body.dark {
 
 html,
 body {
-  height: 100%;
   margin: 0;
   padding: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -133,14 +132,40 @@ select {
 }
 
 .btn {
-  padding: 8px 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background 0.15s ease, transform 0.08s ease;
+ 
+}
+
+.btnlive {
+  padding: 8px 10px;
   border-radius: 6px;
   background: var(--accent-color);
   color: #fff;
   border: none;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.08s ease;
+ 
 }
+
+.league-select,
+.league-header .btn {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;   /* match padding */
+  font-size: 1rem;     /* consistent text size */
+  border-radius: 8px;  /* match border radius */
+}
+
 
 .btn:hover {
   transform: translateY(-1px);
@@ -163,10 +188,11 @@ select {
   flex-direction: column;
   width: 100%;
   min-height: 100vh;
-}
+  background: var(--bg-color); }
 
 .league-header {
   display: flex;
+   align-items: stretch;
   gap: 10px;
   align-items: center;
   padding: 10px 14px;
@@ -176,7 +202,6 @@ select {
   border: 1px solid var(--border-color);
   margin: 10px;
 }
-
 .text-center {
   text-align: center;
   /* top 0, right 0, bottom 0, left 8px */
@@ -201,11 +226,14 @@ select {
 /* Panels */
 .panel-container {
   display: flex;
-  gap: 12px;
-  width: 100%;
-  padding: 10px;
-  box-sizing: border-box;
-  background: var(--panel-bg); /* ensure dark mode matches card background */
+  gap: 10px;
+  align-items: stretch;
+  padding: 10px 14px;
+  background: var(--header-bg);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+  margin: 10px;
 }
 
 #matchupPanel,
@@ -214,9 +242,9 @@ select {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  overflow-y: auto;
   box-shadow: var(--shadow);
 }
+
 
 #matchupPanel {
   width: 33%;
@@ -568,7 +596,6 @@ body.dark .player-link {
 @media (max-width:768px) {
   .panel-container {
     flex-direction: column;
-    padding: 5px;
   }
 
   #matchupPanel,
@@ -599,6 +626,7 @@ body.dark .player-link {
 }
 
 .modal-content {
+  position: relative;
   background: var(--panel-bg);
   color: var(--text-color);
   padding: 16px;
