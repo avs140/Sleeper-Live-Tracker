@@ -164,6 +164,8 @@ class PopupController {
   async renderMatchupData(data) {
     const { league, week, myRoster, opponentRoster, myMatchup, opponentMatchup, userMap, allPlayers } = data;
 
+    const games = await this.api.getNFLGames(data.season);
+
     // Update week title
     UIComponents.updateElement('weektitle', `<h2 class="text-center">Week ${week} Matchup</h2>`);
     // Calculate projections for both teams
@@ -193,18 +195,22 @@ class PopupController {
       <span class="win-prob-text">${winProbability.toFixed(1)}% Win Probability</span>
     </div>
   
-    ${UIComponents.createRosterHTML(
+    ${UIComponents.createLiveRosterHTML(
         myRoster,
         myMatchup,
         myProjections,
         myTeamName,
-        opponentProjections.totalCombined
-      )} ${UIComponents.createRosterHTML(
+        opponentProjections.totalCombined,
+        null,
+        games
+      )} ${UIComponents.createLiveRosterHTML(
         opponentRoster,
         opponentMatchup,
         opponentProjections,
         opponentTeamName,
-        myProjections.totalCombined
+        myProjections.totalCombined,
+        null,
+        games
       )}
   </div>
 `;

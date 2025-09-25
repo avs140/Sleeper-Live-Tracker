@@ -3,9 +3,20 @@ class MatchupService {
   constructor(api) {
     this.api = api;
     this.scoringCalculator = new ScoringCalculator();
+    this.previousPlayerStats = {}; // <-- store last known stats
+    this.previousPlayerPoints = {}; // <-- store last known points
   }
 
-  async getMatchupData(username, leagueId) {
+
+
+  createUserMap(users) {
+    return users.reduce((map, user) => {
+      map[user.user_id] = user.metadata?.team_name || user.display_name || 'Unnamed Team';
+      return map;
+    }, {});
+  }
+
+   async getMatchupData(username, leagueId) {
     try {
       // Fetch all required data in parallel
       const [user, nflState, league, rosters, users, allPlayers] = await Promise.all([
@@ -57,27 +68,24 @@ class MatchupService {
     }
   }
 
-  createUserMap(users) {
-    return users.reduce((map, user) => {
-      map[user.user_id] = user.metadata?.team_name || user.display_name || 'Unnamed Team';
-      return map;
-    }, {});
-  }
 
   async calculateProjectionsForRoster(roster, matchup, league, allPlayers, season, week) {
     const playerIds = matchup.starters || [];
     const projections = await this.api.batchPlayerProjections(playerIds, season, week);
+    const playerStatsData = await this.api.getAllPlayerStats(playerIds, season, week);
 
     let totalProjected = 0;
     let totalActual = 0;
     const playerData = [];
 
-    playerIds.forEach((playerId, index) => {
+    for (let i = 0; i < playerIds.length; i++) {
+      const playerId = playerIds[i];
       const player = allPlayers[playerId];
       const actualPoints = matchup.players_points?.[playerId] || 0;
-      const projectionData = projections[index];
+      const projectionData = projections[i];
       const isGameOver = this.isPlayerGameOver(player, actualPoints);
 
+      // Compute projected points
       let projectedPoints = 0;
       if (projectionData && projectionData[week]) {
         projectedPoints = this.scoringCalculator.calculateProjectedPoints(
@@ -87,21 +95,32 @@ class MatchupService {
         );
       }
 
-      if (isGameOver) {
-        totalActual += actualPoints;
-      } else {
-        totalProjected += projectedPoints;
+      if (isGameOver) totalActual += actualPoints;
+      else totalProjected += projectedPoints;
+
+      // Compute stat deltas
+      const currentStats = playerStatsData[playerId] || {};
+      const previousStats = this.previousPlayerStats[playerId] || {};
+      const statDeltas = {};
+
+      for (const [stat, value] of Object.entries(currentStats)) {
+        const delta = (value || 0) - (previousStats[stat] || 0);
+        if (delta !== 0) statDeltas[stat] = delta;
       }
+
+      this.previousPlayerStats[playerId] = { ...currentStats };
+      this.previousPlayerPoints[playerId] = actualPoints;
 
       playerData.push({
         id: playerId,
         player,
         actualPoints,
         projectedPoints,
+        position: league.roster_positions?.[i] || 'FLEX',
         isGameOver,
-        position: league.roster_positions?.[index] || 'FLEX'
+        detailedStats: statDeltas
       });
-    });
+    }
 
     return {
       totalActual,
@@ -112,10 +131,7 @@ class MatchupService {
   }
 
   isPlayerGameOver(player, actualPoints) {
-    // Player has scored points or is inactive/out
-    return actualPoints > 0 ||
-      player?.status === 'Inactive' ||
-      player?.status === 'OUT';
+    return actualPoints > 0 || player?.status === 'Inactive' || player?.status === 'OUT';
   }
 
   calculateWinProbability(myTotal, opponentTotal) {
@@ -154,14 +170,15 @@ class ScoringCalculator {
   }
 
   getPlayerStatusClass(player) {
-    const status = player?.status || 'ACTIVE';
-
+    const status = player?.injury_status || 'ACTIVE';
     switch (status) {
       case 'Active':
       case 'ACTIVE':
         return 'active';
       case 'OUT':
       case 'Inactive':
+        return 'out';
+      case 'IR':
         return 'out';
       case 'Questionable':
         return 'questionable';

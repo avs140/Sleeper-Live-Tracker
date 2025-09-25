@@ -2,6 +2,38 @@
 class LiveController {
   constructor() {
     this.api = new SleeperAPI();
+    
+// this.api.getAllPlayerStats = async (playerIds, season, week) => {
+//   const fakeStats = {};
+//   for (const id of playerIds) {
+//     fakeStats[id] = {
+//       pass_yd: 0,
+//       pass_td: 0,
+//       rush_yd: 0,
+//       rush_td: 0,
+//       rec: 1,
+//       rec_yd: 30,
+//       rec_td: 1,
+//       fum: 0,
+//     };
+//   }
+//   return fakeStats;
+// };
+
+// this.api.getPlayerStats = async (playerId, season, week) => {
+//   return {
+//       pass_yd: 0,
+//       pass_td: 0,
+//       rush_yd: 0,
+//       rush_td: 0,
+//       rec: 1,
+//       rec_yd: 30,
+//       rec_td: 1,
+//       fum: 0,
+//   };
+// };
+
+
     this.matchupService = new MatchupService(this.api);
     this.scoringFeed = new ScoringFeed();
     this.storage = this.getStorageAPI();
@@ -28,10 +60,6 @@ if (chrome && chrome.storage) {
     }
   });
 }
-
-
-
-
 
   }
 
@@ -108,7 +136,7 @@ if (chrome && chrome.storage) {
     // Set up recurring updates every 30 seconds
     this.updateInterval = setInterval(() => {
       this.updateMatchupData(leagueId, username);
-    }, 30000);
+    }, 5000);
   }
 
   async updateMatchupData(leagueId, username) {
@@ -131,6 +159,8 @@ if (chrome && chrome.storage) {
 
   async renderLiveMatchup(data) {
     const { league, season, week, myRoster, opponentRoster, myMatchup, opponentMatchup, userMap, allPlayers } = data;
+
+    const games = await this.api.getNFLGames(season);
 
     // Update page header
     this.updatePageHeader(league.name, week);
@@ -161,8 +191,8 @@ if (chrome && chrome.storage) {
       <span class="win-prob-text">${winProbability.toFixed(1)}% Win Probability</span>
     </div>
 
-    ${this.createLiveRosterHTML(myRoster, myMatchup, myProjections, userMap[myRoster.owner_id], opponentProjections.totalCombined, myIsWinning)}
-    ${this.createLiveRosterHTML(opponentRoster, opponentMatchup, opponentProjections, userMap[opponentRoster.owner_id], myProjections.totalCombined, oppIsWinning)}
+    ${UIComponents.createLiveRosterHTML(myRoster, myMatchup, myProjections, userMap[myRoster.owner_id], opponentProjections.totalCombined, myIsWinning,games)}
+    ${UIComponents.createLiveRosterHTML(opponentRoster, opponentMatchup, opponentProjections, userMap[opponentRoster.owner_id], myProjections.totalCombined, oppIsWinning,games )}
   </div>
 `;
 
@@ -196,58 +226,6 @@ if (chrome && chrome.storage) {
       }
     });
 
-  }
-
-  createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal, isWinning) {
-    const total = matchup.points || 0;
-    const projectedTotal = projectionData.totalCombined;
-    const colorClass = UIComponents.getScoreColorClass(total, opponentTotal);
-    const sectionId = `roster-${roster.owner_id}`; // stable ID
-
-    const winningClass = isWinning ? 'winning' : ''; // <-- dynamically add winning
-
-    return `
-<div class="roster-section collapsed ${winningClass}" data-section-id="${sectionId}">
-  <h3 class="matchup-header roster-header">
-    <span class="team-name">${teamName}</span>
-    <div class="header-right">
-      <span class="points ${colorClass}">${total.toFixed(1)}</span>
-      <span class="toggle-btn">▾</span>
-    </div>
-  </h3>
-  <h4 class="matchup-subheader">
-    Projected Total: <span>${projectedTotal.toFixed(1)}</span>
-  </h4>
-  <div class="player-list-container">
-    <ul class="player-list">
-      ${this.createLivePlayerListHTML(projectionData.playerData)}
-    </ul>
-  </div>
-</div>
-`;
-  }
-
-  createLivePlayerListHTML(playerData) {
-    return playerData.map(data => {
-      const { id, player, actualPoints, projectedPoints, position } = data;
-      const displayPosition = UIComponents.formatPosition(position);
-      const statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
-      const playerName = player?.full_name || 'Unknown Player';
-      const playerNameSafe = playerName.replace(/"/g, '&quot;');
-
-      return `
-<li id="player-${id}" class="player-item ${statusClass}">
-  <div class="player-top">
-    <span class="position">${displayPosition}</span>
-    <a href="#" class="player-link" data-player-id="${id}" data-player-name="${playerNameSafe}" data-player-position="${displayPosition}" style="text-decoration: underline;">
-      ${playerName}
-    </a>
-    <span class="points">${actualPoints.toFixed(1)} pts</span>
-  </div>
-  <div class="projection">Projected: ${projectedPoints.toFixed(1)}</div>
-</li>
-`;
-    }).join('');
   }
 
   attachPlayerClickListener() {
@@ -380,6 +358,7 @@ if (chrome && chrome.storage) {
       if (h3) h3.innerHTML = `Week ${week} Matchup`;
     }
   }
+
 
   applyTheme(theme) {
     document.body.classList.remove('light', 'dark');

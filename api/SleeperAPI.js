@@ -127,6 +127,14 @@ class SleeperAPI {
     };
   }
 
+  async getAllPlayerStats(playerIds, season, week) {
+  const stats = {};
+  for (const id of playerIds) {
+    stats[id] = await this.getPlayerStats(id, season, week);
+  }
+  return stats;
+}
+
   async getPlayerProjections(playerId, season, week) {
     const url = `https://api.sleeper.com/projections/nfl/player/${playerId}?season_type=regular&season=${season}&grouping=week`;
     return this.fetchWithCache(url, `proj_${playerId}_${season}_${week}`);
@@ -144,6 +152,33 @@ class SleeperAPI {
 
     return weekData.stats; // <-- returns the stats object directly
   }
+
+async getNFLGames(season) {
+  try {
+    // ESPN scoreboard API (season included as query param if needed)
+    const response = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+    if (!response.ok) throw new Error('Failed to fetch NFL games from ESPN');
+
+    const data = await response.json();
+
+    // Extract relevant info
+    const games = data.events.map(event => ({
+      id: event.id,
+      shortName: event.shortName, // e.g., "SEA @ ARI"
+      competitors: event.competitions[0]?.competitors.map(c => ({
+        abbreviation: c.team.abbreviation,
+        homeAway: c.homeAway
+      })) || [],
+      status: event.status?.type?.state || 'pre' // 'pre', 'in', 'post'
+    }));
+
+    return games;
+
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
 
 
   clearCache() {
