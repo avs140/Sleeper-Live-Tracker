@@ -27,45 +27,50 @@ class UIComponents {
   `;
   }
 
- static createPlayerListHTML(playerData, espnGames, linksActive) {
-  const playersWithLive = this.mapPlayersToLiveGames(playerData, espnGames);
+  static createPlayerListHTML(playerData, espnGames, linksActive) {
+    const playersWithLive = this.mapPlayersToLiveGames(playerData, espnGames);
 
-  return playersWithLive.map(data => {
-    const { id, player, actualPoints, projectedPoints, position, gameState } = data;
+    return playersWithLive.map(data => {
+      const { id, player, actualPoints, projectedPoints, position, gameState } = data;
 
-    // Use checkmark if game finished
-    const displayPosition = gameState === 'post' ? '✔️' : (position === 'SUPER_FLEX' ? 'SF' : position);
+      // Use checkmark if game finished
+      const displayPosition = gameState === 'post' ? '✔️' : (position === 'SUPER_FLEX' ? 'SF' : position);
+      const playerPosition = player.position;
 
-    // Base injury/status
-    const injuryStatus = (player?.injury_status || 'ACTIVE').toUpperCase();
-    let injurySymbol = '';
-    let statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
+      // Base injury/status
+      const injuryStatus = (player?.injury_status || 'ACTIVE').toUpperCase();
+      let injurySymbol = '';
+      let statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
 
-    switch (injuryStatus) {
-      case 'OUT':
-      case 'IR':
-        injurySymbol = '🤕';
-        statusClass = 'out';
-        break;
-      case 'QUESTIONABLE':
-        injurySymbol = '❓';
-        statusClass = 'questionable';
-        break;
-      default:
-        statusClass = 'active';
-        injurySymbol = '';
-    }
+      switch (injuryStatus) {
+        case 'OUT':
+        case 'IR':
+          injurySymbol = '🤕';
+          statusClass = 'out';
+          break;
+        case 'QUESTIONABLE':
+          injurySymbol = '❓';
+          statusClass = 'questionable';
+          break;
+        default:
+          statusClass = 'active';
+          injurySymbol = '';
+      }
 
-    // Append game state classes
-    if (gameState === 'in') statusClass += ' live';
-    if (gameState === 'post') statusClass += ' finished';
+      // Append game state classes
+      if (gameState === 'in') statusClass += ' live';
+      if (gameState === 'post') statusClass += ' finished';
 
-    const playerName = player?.full_name || 'Unknown Player';
-    const nameHTML = linksActive
-      ? `<a href="#" class="player-link ${statusClass}" data-player-id="${id}">${playerName} ${injurySymbol}</a>`
-      : `<span class="${statusClass}">${playerName} ${injurySymbol}</span>`;
-
-    return `
+      const playerName = player?.full_name || 'Unknown Player';
+      const nameHTML = linksActive
+        ? `<a href="#" class="player-link ${statusClass}" data-player-id="${id}">
+       ${playerName} <span class="player-position">(${playerPosition})</span> ${injurySymbol}
+     </a>`
+        : `<span class="${statusClass}">
+       ${playerName} <span class="player-position">(${playerPosition})</span> ${injurySymbol}
+     </span>`;
+     
+      return `
 <li id="player-${id}" class="player-item ${statusClass}">
   <span class="player-top">
     <span class="position">${displayPosition}</span> - 
@@ -75,21 +80,20 @@ class UIComponents {
   <span class="projection">Projected: ${projectedPoints.toFixed(1)}</span>
 </li>
     `;
-  }).join('');
-}
+    }).join('');
+  }
   // add this static helper to UIComponents
   static mapPlayersToLiveGames(playerData, espnGames) {
     return playerData.map(player => {
       if (!player || !espnGames?.length) return { ...player, gameState: 'pre' };
 
 
-      
-  const game = espnGames.find(g => {
-    let team = player.player.team.toUpperCase();
-    // Hardcode the Washington mismatch
-    if (team === 'WAS') team = 'WSH';
-    return g.shortName?.toUpperCase().includes(team);
-  });
+      let team = player.player.team.toUpperCase();
+      // Hardcode the Washington mismatch
+      if (team === 'WAS') team = 'WSH';
+      const game = espnGames.find(g => {
+        return g.shortName?.toUpperCase().includes(team);
+      });
 
 
       const state = game?.status?.toLowerCase() || 'pre';

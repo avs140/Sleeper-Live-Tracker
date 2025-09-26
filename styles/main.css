@@ -411,13 +411,18 @@ select {
   align-items: center;
   padding: 6px 4px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
 }
 
 .player-item.active.live {
   background-color: #28a745; /* green */
   color: white;
   animation: blink 1s infinite;
+}
+
+.player-position {
+  font-size: 0.55em;   /* smaller than normal text */
+  color: #666;        /* optional, muted color */
 }
 
 /* Finished game — solid green background with white text */
@@ -491,7 +496,7 @@ body.dark .player-link {
 }
 
 .player-item.questionable {
-  color: #fd7e14;
+  color: #dacb00;
   font-style: italic;
 }
 
@@ -506,7 +511,7 @@ body.dark .player-link {
 }
 
 .player-item.questionable .player-link {
-  color: #fd7e14;
+   color: #dacb00;
   font-style: italic;
 }
 

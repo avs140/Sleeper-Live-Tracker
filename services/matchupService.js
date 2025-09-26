@@ -5,67 +5,92 @@ class MatchupService {
     this.scoringCalculator = new ScoringCalculator();
     this.previousPlayerStats = {}; // <-- store last known stats
     this.previousPlayerPoints = {}; // <-- store last known points
-        this.winProbCache = {}; // <-- in-memory cache
-    this.storage = {
-      async get(key) { return this[key] ?? null },
-      async set(obj) { Object.assign(this, obj) }
-    };
+    this.winProbCache = {}; // <-- in-memory cache
+    this.restoreCache();
 
   }
 
-
-async calculateLiveWinProbabilityCached(
-  matchupId,
-  myScore,
-  myRemainingProj,
-  myRoster,
-  oppScore,
-  oppRemainingProj,
-  oppRoster,
-  allPlayers,
-  games,
-  sims = 1000,
-  volatility = 25
-) {
-  const now = Date.now();
-  const cached = this.winProbCache[matchupId];
-
-  if (cached && now - cached.timestamp < 60_000) {
-    return cached.value; // always a number
+  async restoreCache() {
+    const result = await chrome.storage.local.get(null); // load all keys
+    for (const [key, value] of Object.entries(result)) {
+      if (key.startsWith("winProb_")) {
+        this.winProbCache[key.replace("winProb_", "")] = value;
+      }
+    }
   }
 
-  const anyLiveGame = myRoster.concat(oppRoster).some(playerId => {
-    const player = allPlayers[playerId];
-    if (!player) return false;
-    const game = games.find(g => {
+  async setCachedWinProb(matchupId, value) {
+    const entry = { value, timestamp: Date.now() };
+    this.winProbCache[matchupId] = entry;
+
+    // Persist to chrome.storage.local
+    await chrome.storage.local.set({ [`winProb_${matchupId}`]: entry });
+  }
+
+  async getCachedWinProb(matchupId) {
+    // First check memory
+    if (this.winProbCache[matchupId]) {
+      return this.winProbCache[matchupId];
+    }
+
+    // Fallback to chrome.storage.local
+    const result = await chrome.storage.local.get(`winProb_${matchupId}`);
+    return result[`winProb_${matchupId}`] ?? null;
+  }
+  async calculateLiveWinProbabilityCached(
+    matchupId,
+    myScore,
+    myRemainingProj,
+    myRoster,
+    oppScore,
+    oppRemainingProj,
+    oppRoster,
+    allPlayers,
+    games,
+    sims = 1000,
+    volatility = 25
+  ) {
+    const now = Date.now();
+     const cached = await this.getCachedWinProb(matchupId);
+    
+    const anyLiveGame = myRoster.concat(oppRoster).some(playerId => {
+      const player = allPlayers[playerId];
+      if (!player) return false;
       let team = player.team.toUpperCase();
       if (team === 'WAS') team = 'WSH';
-      return g.shortName?.toUpperCase().includes(team);
+      const game = games.find(g => {
+        return g.shortName?.toUpperCase().includes(team);
+      });
+      return game?.status === 'in';
     });
-    return game?.status === 'in' || game?.status === 'post';
-  });
 
-  const winProb = anyLiveGame
-    ? this.calculateWinProbabilityLive(
-        myScore,
-        myRemainingProj,
-        this.calculateRosterGameProgress(myRoster, allPlayers, games),
-        oppScore,
-        oppRemainingProj,
-        this.calculateRosterGameProgress(oppRoster, allPlayers, games),
-        sims,
-        volatility
-      )
-    : 50;
+    // Always prefer cache if no games are live
+    if (!anyLiveGame && cached) {
+      return cached.value;
+    }
 
-  // Cache as number
-  this.winProbCache[matchupId] = { value: winProb, timestamp: now };
-  if (this.storage) {
-    await this.storage.set({ [`winProb_${matchupId}`]: this.winProbCache[matchupId] });
+    // Only use timestamp if games are live
+    if (cached && now - cached.timestamp < 60_000) {
+      return cached.value;
+    }
+
+
+
+    const winProb = this.calculateWinProbabilityLive(
+      myScore,
+      myRemainingProj,
+      this.calculateRosterGameProgress(myRoster, allPlayers, games),
+      oppScore,
+      oppRemainingProj,
+      this.calculateRosterGameProgress(oppRoster, allPlayers, games),
+      sims,
+      volatility
+    )
+    // Cache as number
+    await this.setCachedWinProb(matchupId, winProb);
+
+    return winProb;
   }
-
-  return winProb; // always a number
-}
 
 
   createUserMap(users) {
@@ -179,49 +204,33 @@ async calculateLiveWinProbabilityCached(
     };
   }
 
-async setCachedWinProb(matchupId, value) {
-  const entry = { value: value, timestamp: Date.now() };
-  if (this.storage) {
-    await this.storage.set({ [`winProb_${matchupId}`]: entry });
-  }
-  this.winProbCache[matchupId] = entry;
-}
 
-async getCachedWinProb(matchupId) {
-  const cached = this.winProbCache[matchupId];
-  if (cached) return cached;
-  if (!this.storage) return null;
 
-  const data = await this.storage.get(`winProb_${matchupId}`);
-  return data?.[`winProb_${matchupId}`] ?? null;
-}
-
-PlayerGameCompletionAmount(player, games, actualPts = true) {
-  if (!player) return 0;
-
-  const game = games.find(g => {
+  PlayerGameCompletionAmount(player, games, actualPts = true) {
+    if (!player) return 0;
     let team = player.team.toUpperCase();
     // Hardcode the Washington mismatch
     if (team === 'WAS') team = 'WSH';
-    return g.shortName?.toUpperCase().includes(team);
-  });
+    const game = games.find(g => {
+      return g.shortName?.toUpperCase().includes(team);
+    });
 
-  if (!game) return 0;
+    if (!game) return 0;
 
-  const state = game.status;
+    const state = game.status;
 
-  if (actualPts) {
-    if (state === "pre") return 0;
-    if (state === "in") return 0.5;
-    if (state === "post") return 1;
-  } else {
-    if (state === "pre") return 1;
-    if (state === "in") return 0.5;
-    if (state === "post") return 0;
+    if (actualPts) {
+      if (state === "pre") return 0;
+      if (state === "in") return 0.5;
+      if (state === "post") return 1;
+    } else {
+      if (state === "pre") return 1;
+      if (state === "in") return 0.5;
+      if (state === "post") return 0;
+    }
+
+    return 0;
   }
-
-  return 0;
-}
 
   calculateWinProbabilityLive(
     myScore,
@@ -239,7 +248,7 @@ PlayerGameCompletionAmount(player, games, actualPts = true) {
     const oppProjRemaining = oppRemainingProj * (1 - oppGameProgress);
 
     for (let i = 0; i < sims; i++) {
-      const myTotal = myScore + this.randomNormal(myProjRemaining , sd);
+      const myTotal = myScore + this.randomNormal(myProjRemaining, sd);
       const oppTotal = oppScore + this.randomNormal(oppRemainingProj, sd);
       if (myTotal > oppTotal) wins++;
     }
@@ -265,11 +274,10 @@ PlayerGameCompletionAmount(player, games, actualPts = true) {
       const player = allPlayers[playerId];
       if (!player) continue;
 
-
+      let team = player.team.toUpperCase();
+      // Hardcode the Washington mismatch
+       if (team === 'WAS') team = 'WSH';
       const game = games.find(g => {
-        let team = player.team.toUpperCase();
-        // Hardcode the Washington mismatch
-        if (team === 'WAS') team = 'WSH';
         return g.shortName?.toUpperCase().includes(team);
       });
 
