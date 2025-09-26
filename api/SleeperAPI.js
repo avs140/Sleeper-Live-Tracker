@@ -90,38 +90,7 @@ class SleeperAPI {
       ...weekData,
       // Flatten all stats fields directly into root
       ...(weekData.stats || {}),
-    };
-  }
-
-  async getPlayerDetails(playerId, season, week) {
-    if (!playerId) throw new Error('Player ID is required');
-
-    const allPlayers = await this.getAllPlayers();
-    const player = allPlayers[playerId];
-    if (!player) throw new Error(`Player not found: ${playerId}`);
-
-    let weekData = {};
-    try {
-      weekData = await this.getPlayerStats(playerId, season, week) || {};
-    } catch (err) {
-      console.warn(`No stats data for ${playerId}:`, err);
-    }
-
-    return {
-      player_id: playerId,
-      full_name: player.full_name,
-      first_name: player.first_name,
-      last_name: player.last_name,
-      team: player.team,
-      position: player.position,
-      points: player.points || 0,      // historical total points
-      games_played: player.gp || 0,    // historical games played
-      week,
-      season,
-      // Flatten all weekData fields
-      ...weekData,
-      // Flatten all stats fields directly into root
-      ...(weekData.stats || {}),
+      injury_status: player.injury_status
     };
   }
 
@@ -147,6 +116,15 @@ class SleeperAPI {
     if (!weekData || !weekData.stats) return null;
 
     return weekData.stats; // <-- returns the stats object directly
+  }
+
+    async getPlayerSeasonStats(playerId, season) {
+    const url = `https://api.sleeper.com/stats/nfl/player/${playerId}?season_type=regular&season=${season}`;
+    const allStats = await this.fetchWithCache(url, `SeasonStats_${playerId}_${season}`);
+
+    if (!allStats || typeof allStats !== 'object') return null;
+
+    return allStats.stats; // <-- returns the stats object directly
   }
 
 async getNFLGames(season) {

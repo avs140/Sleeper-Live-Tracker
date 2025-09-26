@@ -241,100 +241,169 @@ class LiveController {
   }
 
 
-  attachPlayerClickListener() {
-    const statNameMap = {
-      pass_cmp: "Completions",
-      pass_att: "Pass Attempts",
-      pass_yd: "Passing Yards",
-      pass_td: "Passing TDs",
-      pass_int: "Interceptions",
-      pass_rtg: "Pass Rating",
-      pass_lng: "Longest Pass",
-      pass_ypa: "Yards/Attempt",
-      pass_ypc: "Yards/Completion",
-      rush_att: "Rush Attempts",
-      rush_yd: "Rushing Yards",
-      rush_td: "Rushing TDs",
-      rush_lng: "Longest Rush",
-      rush_fd: "Rushing First Downs",
-      rec: "Receptions",
-      rec_yd: "Receiving Yards",
-      rec_td: "Receiving TDs",
-      rec_lng: "Longest Reception",
-      rec_fd: "Receiving First Downs",
-      fum: "Fumbles",
-    };
+attachPlayerClickListener() {
+  document.getElementById('matchups').addEventListener('click', async (e) => {
+    const link = e.target.closest('.player-link');
+    if (!link) return;
+    e.preventDefault();
 
-    document.getElementById('matchups').addEventListener('click', async (e) => {
-      const link = e.target.closest('.player-link');
-      if (!link) return;
-      e.preventDefault();
+    const playerId = link.closest('.player-item')?.id?.replace('player-', '');
+    if (!playerId) return;
 
-      const playerId = link.closest('.player-item')?.id?.replace('player-', '');
-      if (!playerId) return;
+    const modal = document.getElementById('playerModal');
+    const modalBody = document.getElementById('modalBody');
 
-      const modal = document.getElementById('playerModal');
-      const modalBody = document.getElementById('modalBody');
-
-      // Create week selector
-      // Create week selector (only up to currentWeek)
-      const weekOptions = Array.from({ length: this.currentWeek }, (_, i) =>
+    // Prepare week dropdown options
+    const weekOptions = `<option value="season">Season</option>` +
+      Array.from({ length: this.currentWeek }, (_, i) => 
         `<option value="${i + 1}">Week ${i + 1}</option>`
       ).join('');
-      modalBody.innerHTML = `
-  <div id="playerWeekSelector">
-    <select id="weekSelect">${weekOptions}</select>
-  </div>
-  <ul id="playerStatsList"></ul>
-`;
 
-      modal.classList.remove('hidden');
+    // Initialize modal structure
+    modalBody.innerHTML = `
+      <div class="player-card-container">
+        <div id="playerStatsList"></div>
+      </div>
+    `;
+    modal.classList.remove('hidden');
 
-      // Close modal
-      document.getElementById('modalClose').onclick = () => modal.classList.add('hidden');
-      window.onclick = (event) => { if (event.target === modal) modal.classList.add('hidden'); };
+    // Close modal handlers
+    document.getElementById('modalClose').onclick = () => modal.classList.add('hidden');
+    window.onclick = (event) => { if (event.target === modal) modal.classList.add('hidden'); };
 
-      const weekSelect = document.getElementById('weekSelect');
+    // Function to load player stats
+    const loadPlayerStats = async (week) => {
+      let playerData;
 
-      const loadPlayerStats = async (week) => {
-        const playerData = await this.api.getPlayerDetails(playerId, this.currentSeason, week);
+      if (week === 'season') {
+        const seasonData = await this.api.getPlayerSeasonStats(playerId, this.currentSeason);
+        const weekData = await this.api.getPlayerDetails(playerId, this.currentSeason, 1); // metadata
+        playerData = {
+          ...seasonData,
+          full_name: weekData.full_name,
+          position: weekData.position,
+          team: weekData.team,
+          season: weekData.season,
+          injury_status: weekData.injury_status,
+          week: 'season'
+        };
+      } else {
+        playerData = await this.api.getPlayerDetails(playerId, this.currentSeason, week);
+        if (playerData) playerData.week = week;
+      }
 
-        if (!playerData) {
-          document.getElementById('playerStatsList').innerHTML = '<li>No stats available for this week.</li>';
-          return;
-        }
+      if (!playerData) {
+        document.getElementById('playerStatsList').innerHTML = '<div class="error">No stats available.</div>';
+        return;
+      }
 
-        // Set week selector to current week
-        weekSelect.value = playerData.week;
+      // Header info
+      const initials = playerData.full_name ? playerData.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'PL';
+      const getPositionColor = (pos) => {
+        const p = pos?.toUpperCase();
+        if (p === 'QB') return '#d32f2f';
+        if (p === 'RB' || p === 'FB') return '#1976d2';
+        if (p === 'WR' || p === 'TE') return '#388e3c';
+        return '#d32f2f';
+      };
+      const positionColor = getPositionColor(playerData.position);
+      const statusMap = {
+        ACTIVE: { text: 'ACTIVE', color: '#28a745' },
+        QUESTIONABLE: { text: 'QUESTIONABLE', color: '#ffc107' },
+        DOUBTFUL: { text: 'DOUBTFUL', color: '#ff9800' },
+        OUT: { text: 'OUT', color: '#dc3545' },
+        INJURED_RESERVE: { text: 'IR', color: '#6c757d' },
+      };
+      const status = statusMap[playerData.injury_status?.toUpperCase()] || statusMap.ACTIVE;
 
-        const statsHtml = Object.entries(statNameMap)
-          .filter(([key]) => playerData[key] !== undefined && playerData[key] !== null)
-          .map(([key, displayName]) => {
-            const value = playerData[key];
-            const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
-            const className = typeof value === 'number' && value > 0 ? 'positive' : value < 0 ? 'negative' : '';
-            return `<li class="${className}"><strong>${displayName}:</strong> ${displayValue}</li>`;
-          })
-          .join('');
-
-        document.getElementById('playerStatsList').innerHTML = `
-        <h2>${playerData.full_name}</h2>
-        <p><strong>Position:</strong> ${playerData.position}</p>
-        <p><strong>Team:</strong> ${playerData.team}</p>
-        <p><strong>Season:</strong> ${playerData.season}, <strong>Week:</strong> ${playerData.week}</p>
-        ${statsHtml || '<li>No stats available for this week.</li>'}
+      const playerCardHeader = `
+        <div class="nfl-player-header" style="background: linear-gradient(135deg, ${positionColor} 0%, ${positionColor}dd 100%);">
+          <div class="player-basic-info">
+            <div class="player-avatar">${initials}</div>
+            <div class="player-name-section">
+              <h1 class="player-name">${playerData.full_name}</h1>
+              <div class="player-meta">
+                <span><strong>POS:</strong> ${playerData.position || 'N/A'}</span>
+                <span><strong>TEAM:</strong> ${playerData.team || 'N/A'}</span>
+                <span><strong>SEASON:</strong> ${playerData.season || 'N/A'}</span>
+                <span><strong>WEEK:</strong> ${playerData.week === 'season' ? '' : playerData.week}</span>
+              </div>
+            </div>
+            <div class="status-badge" style="background-color: ${status.color}">${status.text}</div>
+          </div>
+          <div class="player-rankings">
+            <div class="ranking-item">
+              <div class="ranking-value">${playerData.pos_rank_std || '--'}</div>
+              <div class="ranking-label">STD Rank</div>
+            </div>
+            <div class="ranking-item">
+              <div class="ranking-value">${playerData.pos_rank_ppr || '--'}</div>
+              <div class="ranking-label">PPR Rank</div>
+            </div>
+            <div class="ranking-item">
+              <div class="ranking-value">${playerData.pts_std || '--'}</div>
+              <div class="ranking-label">STD Pts</div>
+            </div>
+            <div class="ranking-item">
+              <div class="ranking-value">${playerData.pts_ppr || '--'}</div>
+              <div class="ranking-label">PPR Pts</div>
+            </div>
+          </div>
+        </div>
       `;
+
+      const weekSelector = `
+        <div class="nfl-stats-content">
+          <div class="week-selector">
+            <select id="weekSelect">${weekOptions}</select>
+          </div>
+          <div id="statsContainer"></div>
+        </div>
+      `;
+
+      // Stats categories
+      const statsCategories = {
+        "Passing": [["pass_att","Attempts"],["pass_cmp","Completions"],["pass_yd","Yards"],["pass_td","Touchdowns"],["pass_int","Interceptions"],["pass_lng","Longest Pass"],["pass_rating","Rating"]],
+        "Rushing": [["rush_att","Attempts"],["rush_yd","Yards"],["rush_lng","Longest Rush"],["rush_fd","First Downs"],["rush_rz_att","Redzone Attempts"],["rush_tkl_loss","Tackles for Loss"],["rush_tkl_loss_yd","Tackle Loss Yards"],["rush_ypa","Yards per Attempt"]],
+        "Receiving": [["rec","Receptions"],["rec_tgt","Targets"],["rec_yd","Receiving Yards"],["rec_yar","Yards After Reception"],["rec_ypr","Yards per Reception"],["rec_ypt","Yards per Target"],["rec_lng","Longest Reception"],["rec_fd","First Downs"],["rec_20_29","20-29 Yard Receptions"],["rec_air_yd","Air Yards"]],
+        "Fantasy & Scoring": [["pts_std","Fantasy Pts (STD)"],["pts_half_ppr","Fantasy Pts (0.5 PPR)"],["pts_ppr","Fantasy Pts (PPR)"],["pos_rank_std","Position Rank (STD)"],["pos_rank_half_ppr","Position Rank (0.5 PPR)"],["pos_rank_ppr","Position Rank (PPR)"]],
+        "Game Info": [["gp","Games Played"],["gs","Games Started"],["gms_active","Active Games"],["off_snp","Offensive Snaps"],["tm_off_snp","Team Offensive Snaps"]],
+        "Miscellaneous": [["tm_def_snp","Team Defensive Snaps"],["tm_st_snp","Team ST Snaps"],["pass_rush_yd","Pass Rush Yards"],["penalty","Penalties"],["penalty_yd","Penalty Yards"]]
       };
 
-      // Initial load
-      await loadPlayerStats(this.currentWeek);
+      // Generate stats HTML
+      let statsHtml = "";
+      for (const [category, stats] of Object.entries(statsCategories)) {
+        const categoryStats = stats.filter(([key]) => playerData[key] !== undefined && playerData[key] !== null && playerData[key] !== 0);
+        if (!categoryStats.length) continue;
 
-      // Reload stats when week changes
-      weekSelect.addEventListener('change', async (e) => {
-        await loadPlayerStats(e.target.value);
-      });
-    });
-  }
+        statsHtml += `<div class="nfl-stats-section"><h3 class="nfl-section-title">${category}</h3><div class="nfl-stats-grid">`;
+        categoryStats.forEach(([key,label]) => {
+          const raw = playerData[key];
+          const value = typeof raw === "number" ? (raw % 1 === 0 ? raw : raw.toFixed(1)) : raw;
+          statsHtml += `<div class="nfl-stat-item"><div class="nfl-stat-label">${label}</div><div class="nfl-stat-value">${value}</div></div>`;
+        });
+        statsHtml += `</div></div>`;
+      }
+
+      document.getElementById('playerStatsList').innerHTML = `${playerCardHeader}${weekSelector}`;
+      document.getElementById('statsContainer').innerHTML = statsHtml;
+
+      // Set dropdown value correctly
+      const weekSelectEl = document.getElementById('weekSelect');
+      weekSelectEl.value = week === 'season' ? 'season' : week;
+
+      // On change handler
+      weekSelectEl.onchange = (e) => {
+        const selectedWeek = e.target.value === 'season' ? 'season' : parseInt(e.target.value, 10);
+        loadPlayerStats(selectedWeek);
+      };
+    };
+
+    // Initial load defaults to season
+    loadPlayerStats('season');
+  });
+}
 
   async populateLeagueDropdown() {
     if (!this.storage) return;
