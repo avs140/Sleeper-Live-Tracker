@@ -206,6 +206,7 @@ select {
 }
 .text-center {
   text-align: center;
+  margin: 8px;
   /* top 0, right 0, bottom 0, left 8px */
 }
 
@@ -413,14 +414,26 @@ select {
   font-size: 0.82rem;
 }
 
-.player-item.live {
-  border-left: 3px solid #28a745; /* green live indicator */
-  animation: pulse 1.5s infinite alternate;
+.player-item.active.live {
+  background-color: #28a745; /* green */
+  color: white;
+  animation: blink 1s infinite;
 }
 
-@keyframes pulse {
-  from { background-color: rgba(40,167,69,0.1); }
-  to { background-color: rgba(40,167,69,0.25); }
+/* Finished game — solid green background with white text */
+/* Finished game — solid green background with white text */
+.player-item.active.finished {
+  background-color: #28a745;
+  color: white; 
+  animation: none;
+}
+
+.player-item.active.finished .player-link {
+  color: white !important;  /* ensure link text is visible */
+}
+@keyframes blink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.3; }
 }
 
 .player-item:last-child {
@@ -473,11 +486,26 @@ body.dark .player-link {
 }
 
 .player-item.out {
-  color: var(--muted-text);
+  color: #dc3545;
   opacity: 0.7;
 }
 
 .player-item.questionable {
+  color: #fd7e14;
+  font-style: italic;
+}
+
+/* Keep links in sync with the parent item status */
+.player-item.active .player-link {
+  color: var(--win-color);
+}
+
+.player-item.out .player-link {
+  color: #dc3545;
+  opacity: 0.7;
+}
+
+.player-item.questionable .player-link {
   color: #fd7e14;
   font-style: italic;
 }
@@ -707,7 +735,20 @@ body.dark .player-link {
   max-height: 80vh;
   overflow: auto;
   box-shadow: var(--shadow);
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* left align everything */
+  gap: 12px;
 }
+
+#playerWeekSelector,
+#playerStatsList {
+  width: 100%;
+  max-width: 400px; /* match width of week select */
+  margin: 0;        /* remove offsets */
+}
+
 
 .modal-close {
   position: absolute;
@@ -716,6 +757,7 @@ body.dark .player-link {
   cursor: pointer;
   font-size: 1.4rem;
 }
+
 
 /* ==========================================================================
    Responsive
@@ -770,4 +812,8 @@ body.dark .player-link {
     font-size: 0.75em;
     margin-top: 4px;
   }
+
+  .player-item.active.finished .points {
+  color: white;
+}
 }

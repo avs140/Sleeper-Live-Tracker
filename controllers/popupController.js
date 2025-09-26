@@ -6,6 +6,7 @@ class PopupController {
     this.storage = this.getStorageAPI();
     this.currentLeague = null;
     this.currentUsername = null;
+    this.lastWinProbCalc = 0; 
 
     this.initializeElements();
     this.attachEventListeners();
@@ -171,21 +172,31 @@ class PopupController {
     // Calculate projections for both teams
     const [myProjections, opponentProjections] = await Promise.all([
       this.matchupService.calculateProjectionsForRoster(
-        myRoster, myMatchup, league, allPlayers, data.season, week
+        myRoster, myMatchup, league, allPlayers, data.season, week,games
       ),
       this.matchupService.calculateProjectionsForRoster(
-        opponentRoster, opponentMatchup, league, allPlayers, data.season, week
+        opponentRoster, opponentMatchup, league, allPlayers, data.season, week,games
       )
     ]);
 
     // Render both rosters
     const myTeamName = userMap[myRoster.owner_id];
     const opponentTeamName = userMap[opponentRoster.owner_id];
-    const winProbability = this.matchupService.calculateWinProbability(
-      myProjections.totalCombined,
-      opponentProjections.totalCombined
+    
+   const winProbability = await this.matchupService.calculateLiveWinProbabilityCached(
+      myMatchup.matchup_id,
+      myMatchup.points || 0,
+      myProjections.totalProjected,
+      myRoster.starters,
+      opponentMatchup.points || 0,
+      opponentProjections.totalProjected,
+      opponentRoster.starters,
+      allPlayers,
+      games,
+      100,
+      2
     );
-
+  
     const html = `
   <div class="rosters-container">
     <!-- Win probability bar between rosters -->
@@ -202,7 +213,8 @@ class PopupController {
         myTeamName,
         opponentProjections.totalCombined,
         null,
-        games
+        games,
+        false
       )} ${UIComponents.createLiveRosterHTML(
         opponentRoster,
         opponentMatchup,
@@ -210,7 +222,8 @@ class PopupController {
         opponentTeamName,
         myProjections.totalCombined,
         null,
-        games
+        games,
+        false
       )}
   </div>
 `;

@@ -1,6 +1,6 @@
 // ui/components.js - Reusable UI components
 class UIComponents {
-  static createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal, isWinning, games) {
+  static createLiveRosterHTML(roster, matchup, projectionData, teamName, opponentTotal, isWinning, games, linksActive) {
     const total = matchup.points || 0;
     const projectedTotal = projectionData.totalCombined;
     const colorClass = this.getScoreColorClass(total, opponentTotal);
@@ -20,48 +20,56 @@ class UIComponents {
       </h4>
       <div class="player-list-container">
         <ul class="player-list">
-          ${this.createPlayerListHTML(projectionData.playerData, games)}
+          ${this.createPlayerListHTML(projectionData.playerData, games, linksActive)}
         </ul>
       </div>
     </div>
   `;
   }
 
-static createPlayerListHTML(playerData, espnGames) {
+ static createPlayerListHTML(playerData, espnGames, linksActive) {
   const playersWithLive = this.mapPlayersToLiveGames(playerData, espnGames);
 
   return playersWithLive.map(data => {
-    const { id, player, actualPoints, projectedPoints, position, isLive } = data;
-    const displayPosition = position === 'SUPER_FLEX' ? 'SF' : position;
-    const statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
-    const playerName = player?.full_name || 'Unknown Player';
+    const { id, player, actualPoints, projectedPoints, position, gameState } = data;
 
-    // Normalize injury status
+    // Use checkmark if game finished
+    const displayPosition = gameState === 'post' ? '✔️' : (position === 'SUPER_FLEX' ? 'SF' : position);
+
+    // Base injury/status
     const injuryStatus = (player?.injury_status || 'ACTIVE').toUpperCase();
-
     let injurySymbol = '';
-    let injuryClass = '';
+    let statusClass = ScoringCalculator.prototype.getPlayerStatusClass(player);
 
     switch (injuryStatus) {
       case 'OUT':
       case 'IR':
         injurySymbol = '🤕';
-        injuryClass = 'out';
+        statusClass = 'out';
         break;
       case 'QUESTIONABLE':
         injurySymbol = '❓';
-        injuryClass = 'questionable';
+        statusClass = 'questionable';
         break;
       default:
+        statusClass = 'active';
         injurySymbol = '';
-        injuryClass = '';
     }
 
+    // Append game state classes
+    if (gameState === 'in') statusClass += ' live';
+    if (gameState === 'post') statusClass += ' finished';
+
+    const playerName = player?.full_name || 'Unknown Player';
+    const nameHTML = linksActive
+      ? `<a href="#" class="player-link ${statusClass}" data-player-id="${id}">${playerName} ${injurySymbol}</a>`
+      : `<span class="${statusClass}">${playerName} ${injurySymbol}</span>`;
+
     return `
-<li id="player-${id}" class="player-item ${statusClass} ${injuryClass} ${isLive ? 'live' : ''}">
+<li id="player-${id}" class="player-item ${statusClass}">
   <span class="player-top">
     <span class="position">${displayPosition}</span> - 
-    <span class="player">${playerName} ${injurySymbol}</span> 
+    ${nameHTML} 
     <span class="points">${actualPoints.toFixed(1)} pts</span>
   </span>
   <span class="projection">Projected: ${projectedPoints.toFixed(1)}</span>
@@ -72,14 +80,21 @@ static createPlayerListHTML(playerData, espnGames) {
   // add this static helper to UIComponents
   static mapPlayersToLiveGames(playerData, espnGames) {
     return playerData.map(player => {
-      const liveGame = espnGames.find(game =>
-        Array.isArray(game.competitions) &&
-        game.competitions[0]?.competitors?.some(c => c.team.abbreviation === player.player.team)
-      );
-      return {
-        ...player,
-        isLive: liveGame ? liveGame.status.type.state === 'in' : false,
-      };
+      if (!player || !espnGames?.length) return { ...player, gameState: 'pre' };
+
+
+      
+  const game = espnGames.find(g => {
+    let team = player.player.team.toUpperCase();
+    // Hardcode the Washington mismatch
+    if (team === 'WAS') team = 'WSH';
+    return g.shortName?.toUpperCase().includes(team);
+  });
+
+
+      const state = game?.status?.toLowerCase() || 'pre';
+
+      return { ...player, gameState: state }; // 'pre', 'in', 'post'
     });
   }
 
@@ -155,6 +170,7 @@ static createPlayerListHTML(playerData, espnGames) {
 class ScoringFeed {
   constructor() {
     this.lastScores = new Map();
+    this.previousPlayerStats = {};
     this.feedElement = document.getElementById('feed');
   }
 
@@ -165,28 +181,66 @@ class ScoringFeed {
   updatePlayerScores(playerData, userMap, rosterId) {
     if (!this.feedElement) return;
 
-    const fragment = document.createDocumentFragment(); // <-- batch updates
+    const fragment = document.createDocumentFragment();
 
     playerData.forEach(data => {
       const { id, player, actualPoints, detailedStats } = data;
-      const previousScore = this.lastScores.get(id) || 0;
-      let scoreDiff = actualPoints - previousScore;
-      const hasStatsDelta = detailedStats && Object.keys(detailedStats).length > 0;
 
-      if (scoreDiff !== 0 || hasStatsDelta) {
-        const feedItem = this.createFeedItem(player, scoreDiff, detailedStats, userMap, rosterId, hasStatsDelta);
-        fragment.appendChild(feedItem); // <-- add to fragment
+      // Initialize previous state if missing (first run)
+      if (!this.previousPlayerStats) this.previousPlayerStats = {};
+      if (!this.lastScores) this.lastScores = new Map();
+      if (!(id in this.previousPlayerStats)) {
+        this.previousPlayerStats[id] = { ...detailedStats };
+        this.lastScores.set(id, actualPoints);
+        return; // skip feed on first run
       }
 
-      this.lastScores.set(id, actualPoints);
+      const prevPoints = this.lastScores.get(id) || 0;
+      const prevStats = this.previousPlayerStats[id] || {};
+
+      const scoreDiff = actualPoints - prevPoints;
+
+      // Only consider stats in statNameMap
+      const statNameMap = {
+        pass_cmp: "Completion",
+        pass_yd: "Yards",
+        pass_td: "Touchdown",
+        pass_int: "Interception",
+        rush_att: "Rush",
+        rush_yd: "Yards",
+        rush_td: "Touchdown",
+        rec: "Reception",
+        rec_yd: "Yards",
+        rec_td: "Touchdown",
+        fum: "Fumble",
+      };
+
+      const statDeltas = {};
+      for (const key of Object.keys(statNameMap)) {
+        const delta = (detailedStats[key] || 0) - (prevStats[key] || 0);
+        if (delta !== 0) statDeltas[key] = delta;
+      }
+      const hasStatsDelta = Object.keys(statDeltas).length > 0;
+
+      if (scoreDiff !== 0 && hasStatsDelta) {
+        const feedItem = this.createFeedItem(player, scoreDiff, statDeltas, userMap, rosterId, true);
+        if (feedItem) fragment.appendChild(feedItem);
+
+        // Update memory only when feed actually fires
+        this.lastScores.set(id, actualPoints);
+        this.previousPlayerStats[id] = { ...detailedStats };
+      }
     });
 
-    // Prepend all new items in one DOM operation
-    this.feedElement.prepend(fragment);
+    if (fragment.childNodes.length > 0) {
+      this.feedElement.prepend(fragment);
+    }
   }
 
   // Modified version of addFeedItem to return element instead of directly prepending
   createFeedItem(player, scoreDiff, detailedStats, userMap, rosterId, hasStatsDelta) {
+    if (scoreDiff === 0) return null; // don’t build anything
+
     const ownerName = userMap[rosterId] || 'Unknown Team';
     const timestamp = UIComponents.formatTime();
 
@@ -212,11 +266,11 @@ class ScoringFeed {
     let statsHTML = '';
     if (hasStatsDelta && detailedStats) {
       statsHTML = Object.entries(detailedStats)
-        .filter(([_, delta]) => delta !== 0)
+        .filter(([statKey, delta]) => statNameMap[statKey] && delta !== 0)
         .map(([statKey, delta]) => {
           const deltaClass = delta > 0 ? 'positive' : 'negative';
           const deltaSign = delta > 0 ? '+' : '';
-          const statName = statNameMap[statKey] || statKey;
+          const statName = statNameMap[statKey];
           return `<span class="${deltaClass}">${statName}: ${deltaSign}${delta}</span>`;
         })
         .join(' • ');
@@ -227,9 +281,7 @@ class ScoringFeed {
     feedItem.style.borderLeftColor = borderColor;
     feedItem.innerHTML = `
     <div class="feed-item-main">
-      <span class="${colorClass}">
-        ${scoreDiff !== 0 ? (scoreDiff > 0 ? '+' : '') + scoreDiff.toFixed(1) + ' pts' : ''}
-      </span>
+      <span class="${colorClass}">${scoreDiff > 0 ? '+' : ''}${scoreDiff.toFixed(1)} pts</span>
       <strong>${playerName}</strong>
       <span class="team-name">${ownerName}</span>
       <span class="timestamp">${timestamp}</span>
@@ -237,7 +289,7 @@ class ScoringFeed {
     ${statsHTML ? `<div class="feed-item-stats">${statsHTML}</div>` : ''}
   `;
 
-    return feedItem; // <-- return instead of prepending
+    return feedItem; // ✅ just return the node
   }
   trimFeedItems(maxItems = 50) {
     if (!this.feedElement) return;

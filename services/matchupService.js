@@ -5,8 +5,67 @@ class MatchupService {
     this.scoringCalculator = new ScoringCalculator();
     this.previousPlayerStats = {}; // <-- store last known stats
     this.previousPlayerPoints = {}; // <-- store last known points
+        this.winProbCache = {}; // <-- in-memory cache
+    this.storage = {
+      async get(key) { return this[key] ?? null },
+      async set(obj) { Object.assign(this, obj) }
+    };
+
   }
 
+
+async calculateLiveWinProbabilityCached(
+  matchupId,
+  myScore,
+  myRemainingProj,
+  myRoster,
+  oppScore,
+  oppRemainingProj,
+  oppRoster,
+  allPlayers,
+  games,
+  sims = 1000,
+  volatility = 25
+) {
+  const now = Date.now();
+  const cached = this.winProbCache[matchupId];
+
+  if (cached && now - cached.timestamp < 60_000) {
+    return cached.value; // always a number
+  }
+
+  const anyLiveGame = myRoster.concat(oppRoster).some(playerId => {
+    const player = allPlayers[playerId];
+    if (!player) return false;
+    const game = games.find(g => {
+      let team = player.team.toUpperCase();
+      if (team === 'WAS') team = 'WSH';
+      return g.shortName?.toUpperCase().includes(team);
+    });
+    return game?.status === 'in' || game?.status === 'post';
+  });
+
+  const winProb = anyLiveGame
+    ? this.calculateWinProbabilityLive(
+        myScore,
+        myRemainingProj,
+        this.calculateRosterGameProgress(myRoster, allPlayers, games),
+        oppScore,
+        oppRemainingProj,
+        this.calculateRosterGameProgress(oppRoster, allPlayers, games),
+        sims,
+        volatility
+      )
+    : 50;
+
+  // Cache as number
+  this.winProbCache[matchupId] = { value: winProb, timestamp: now };
+  if (this.storage) {
+    await this.storage.set({ [`winProb_${matchupId}`]: this.winProbCache[matchupId] });
+  }
+
+  return winProb; // always a number
+}
 
 
   createUserMap(users) {
@@ -16,7 +75,7 @@ class MatchupService {
     }, {});
   }
 
-   async getMatchupData(username, leagueId) {
+  async getMatchupData(username, leagueId) {
     try {
       // Fetch all required data in parallel
       const [user, nflState, league, rosters, users, allPlayers] = await Promise.all([
@@ -69,7 +128,7 @@ class MatchupService {
   }
 
 
-  async calculateProjectionsForRoster(roster, matchup, league, allPlayers, season, week) {
+  async calculateProjectionsForRoster(roster, matchup, league, allPlayers, season, week, games) {
     const playerIds = matchup.starters || [];
     const projections = await this.api.batchPlayerProjections(playerIds, season, week);
     const playerStatsData = await this.api.getAllPlayerStats(playerIds, season, week);
@@ -83,7 +142,7 @@ class MatchupService {
       const player = allPlayers[playerId];
       const actualPoints = matchup.players_points?.[playerId] || 0;
       const projectionData = projections[i];
-      const isGameOver = this.isPlayerGameOver(player, actualPoints);
+
 
       // Compute projected points
       let projectedPoints = 0;
@@ -95,21 +154,12 @@ class MatchupService {
         );
       }
 
-      if (isGameOver) totalActual += actualPoints;
-      else totalProjected += projectedPoints;
+      totalActual += actualPoints * this.PlayerGameCompletionAmount(player, games, true);
+      totalProjected += projectedPoints * this.PlayerGameCompletionAmount(player, games, false)
+
 
       // Compute stat deltas
       const currentStats = playerStatsData[playerId] || {};
-      const previousStats = this.previousPlayerStats[playerId] || {};
-      const statDeltas = {};
-
-      for (const [stat, value] of Object.entries(currentStats)) {
-        const delta = (value || 0) - (previousStats[stat] || 0);
-        if (delta !== 0) statDeltas[stat] = delta;
-      }
-
-      this.previousPlayerStats[playerId] = { ...currentStats };
-      this.previousPlayerPoints[playerId] = actualPoints;
 
       playerData.push({
         id: playerId,
@@ -117,8 +167,7 @@ class MatchupService {
         actualPoints,
         projectedPoints,
         position: league.roster_positions?.[i] || 'FLEX',
-        isGameOver,
-        detailedStats: statDeltas
+        detailedStats: currentStats
       });
     }
 
@@ -130,20 +179,120 @@ class MatchupService {
     };
   }
 
-  isPlayerGameOver(player, actualPoints) {
-    return actualPoints > 0 || player?.status === 'Inactive' || player?.status === 'OUT';
+async setCachedWinProb(matchupId, value) {
+  const entry = { value: value, timestamp: Date.now() };
+  if (this.storage) {
+    await this.storage.set({ [`winProb_${matchupId}`]: entry });
+  }
+  this.winProbCache[matchupId] = entry;
+}
+
+async getCachedWinProb(matchupId) {
+  const cached = this.winProbCache[matchupId];
+  if (cached) return cached;
+  if (!this.storage) return null;
+
+  const data = await this.storage.get(`winProb_${matchupId}`);
+  return data?.[`winProb_${matchupId}`] ?? null;
+}
+
+PlayerGameCompletionAmount(player, games, actualPts = true) {
+  if (!player) return 0;
+
+  const game = games.find(g => {
+    let team = player.team.toUpperCase();
+    // Hardcode the Washington mismatch
+    if (team === 'WAS') team = 'WSH';
+    return g.shortName?.toUpperCase().includes(team);
+  });
+
+  if (!game) return 0;
+
+  const state = game.status;
+
+  if (actualPts) {
+    if (state === "pre") return 0;
+    if (state === "in") return 0.5;
+    if (state === "post") return 1;
+  } else {
+    if (state === "pre") return 1;
+    if (state === "in") return 0.5;
+    if (state === "post") return 0;
   }
 
-  calculateWinProbability(myTotal, opponentTotal) {
-    if (myTotal + opponentTotal === 0) return 50;
+  return 0;
+}
 
-    // Use exponential weighting to make the probability more dramatic
-    const weightFactor = 10;
-    const myWeighted = Math.pow(myTotal * 0.8, weightFactor); // Slight discount for uncertainty
-    const opponentWeighted = Math.pow(opponentTotal * 0.8, weightFactor);
+  calculateWinProbabilityLive(
+    myScore,
+    myRemainingProj,
+    myGameProgress,
+    oppScore,
+    oppRemainingProj,
+    oppGameProgress,
+    sims = 1000,
+    sd = 3
+  ) {
+    let wins = 0;
 
-    return (myWeighted / (myWeighted + opponentWeighted)) * 100;
+    const myProjRemaining = myRemainingProj * (1 - myGameProgress);
+    const oppProjRemaining = oppRemainingProj * (1 - oppGameProgress);
+
+    for (let i = 0; i < sims; i++) {
+      const myTotal = myScore + this.randomNormal(myProjRemaining , sd);
+      const oppTotal = oppScore + this.randomNormal(oppRemainingProj, sd);
+      if (myTotal > oppTotal) wins++;
+    }
+
+    return (wins / sims) * 100;
   }
+
+  // Standard normal random generator
+  randomNormal(mean, sd) {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return mean + sd * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  }
+  calculateRosterGameProgress(roster, allPlayers, games) {
+    const starters = roster.starters || [];
+    if (!starters.length) return 0;
+
+    let totalProgress = 0;
+    let countedPlayers = 0;
+
+    for (const playerId of starters) {
+      const player = allPlayers[playerId];
+      if (!player) continue;
+
+
+      const game = games.find(g => {
+        let team = player.team.toUpperCase();
+        // Hardcode the Washington mismatch
+        if (team === 'WAS') team = 'WSH';
+        return g.shortName?.toUpperCase().includes(team);
+      });
+
+      if (!game) return 0;
+
+      const state = game.status;
+
+      let progress = 0;
+      if (state === "pre") progress = 0;
+      if (state === "in") progress = .5;
+      else if (state === "post") progress = 1;
+
+      totalProgress += progress;
+      countedPlayers++;
+    }
+
+    if (countedPlayers === 0) return 0;
+
+    return (totalProgress / countedPlayers); // 0–1 float
+  }
+
+
+
 }
 
 // Separate scoring calculation logic

@@ -71,7 +71,6 @@ class SleeperAPI {
     let weekData = {};
     try {
       weekData = await this.getPlayerStats(playerId, season, week) || {};
-      console.log(`Player stats for ${player.full_name} (Season ${season}, Week ${week}):`, weekData);
     } catch (err) {
       console.warn(`No stats data for ${playerId}:`, err);
     }
@@ -104,7 +103,6 @@ class SleeperAPI {
     let weekData = {};
     try {
       weekData = await this.getPlayerStats(playerId, season, week) || {};
-      console.log(`Player stats for ${player.full_name} (Season ${season}, Week ${week}):`, weekData);
     } catch (err) {
       console.warn(`No stats data for ${playerId}:`, err);
     }
@@ -147,8 +145,6 @@ class SleeperAPI {
 
     const weekData = allStats[String(week)];
     if (!weekData || !weekData.stats) return null;
-
-    console.log(`All weekly stats for ${playerId}, week ${week}:`, weekData.stats);
 
     return weekData.stats; // <-- returns the stats object directly
   }

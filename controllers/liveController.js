@@ -2,36 +2,36 @@
 class LiveController {
   constructor() {
     this.api = new SleeperAPI();
-    
-// this.api.getAllPlayerStats = async (playerIds, season, week) => {
-//   const fakeStats = {};
-//   for (const id of playerIds) {
-//     fakeStats[id] = {
-//       pass_yd: 0,
-//       pass_td: 0,
-//       rush_yd: 0,
-//       rush_td: 0,
-//       rec: 1,
-//       rec_yd: 30,
-//       rec_td: 1,
-//       fum: 0,
-//     };
-//   }
-//   return fakeStats;
-// };
 
-// this.api.getPlayerStats = async (playerId, season, week) => {
-//   return {
-//       pass_yd: 0,
-//       pass_td: 0,
-//       rush_yd: 0,
-//       rush_td: 0,
-//       rec: 1,
-//       rec_yd: 30,
-//       rec_td: 1,
-//       fum: 0,
-//   };
-// };
+    // this.api.getAllPlayerStats = async (playerIds, season, week) => {
+    //   const fakeStats = {};
+    //   for (const id of playerIds) {
+    //     fakeStats[id] = {
+    //       pass_yd: 0,
+    //       pass_td: 0,
+    //       rush_yd: 0,
+    //       rush_td: 0,
+    //       rec: 1,
+    //       rec_yd: 30,
+    //       rec_td: 1,
+    //       fum: 0,
+    //     };
+    //   }
+    //   return fakeStats;
+    // };
+
+    // this.api.getPlayerStats = async (playerId, season, week) => {
+    //   return {
+    //       pass_yd: 0,
+    //       pass_td: 0,
+    //       rush_yd: 0,
+    //       rush_td: 0,
+    //       rec: 1,
+    //       rec_yd: 30,
+    //       rec_td: 1,
+    //       fum: 0,
+    //   };
+    // };
 
 
     this.matchupService = new MatchupService(this.api);
@@ -47,19 +47,19 @@ class LiveController {
     this.initializePage();
     this.expandedSections = {}
 
-if (chrome && chrome.storage) {
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.selectedLeague) {
-      const newLeague = changes.selectedLeague.newValue;
+    if (chrome && chrome.storage) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === "local" && changes.selectedLeague) {
+          const newLeague = changes.selectedLeague.newValue;
 
-      // Optional: clear feed first
-      if (this.scoringFeed) this.scoringFeed.clearFeed();
+          // Optional: clear feed first
+          if (this.scoringFeed) this.scoringFeed.clearFeed();
 
-      // Refresh live page for new league
-      location.reload();
+          // Refresh live page for new league
+          location.reload();
+        }
+      });
     }
-  });
-}
 
   }
 
@@ -171,15 +171,27 @@ if (chrome && chrome.storage) {
 
     // Calculate projections
     const [myProjections, opponentProjections] = await Promise.all([
-      this.matchupService.calculateProjectionsForRoster(myRoster, myMatchup, league, allPlayers, season, week),
-      this.matchupService.calculateProjectionsForRoster(opponentRoster, opponentMatchup, league, allPlayers, season, week)
+      this.matchupService.calculateProjectionsForRoster(myRoster, myMatchup, league, allPlayers, season, week, games),
+      this.matchupService.calculateProjectionsForRoster(opponentRoster, opponentMatchup, league, allPlayers, season, week, games)
     ]);
 
     // Score totals
     const myTotal = myMatchup.points || 0;
     const opponentTotal = opponentMatchup.points || 0;
-    const winProbability = this.matchupService.calculateWinProbability(myProjections.totalCombined, opponentProjections.totalCombined);
 
+    const winProbability = await this.matchupService.calculateLiveWinProbabilityCached(
+      myMatchup.matchup_id,
+      myMatchup.points || 0,
+      myProjections.totalProjected,
+      myRoster.starters,
+      opponentMatchup.points || 0,
+      opponentProjections.totalProjected,
+      opponentRoster.starters,
+      allPlayers,
+      games,
+      100,
+      2
+    );
 
     const myIsWinning = myTotal > opponentTotal;
     const oppIsWinning = opponentTotal > myTotal;
@@ -191,8 +203,8 @@ if (chrome && chrome.storage) {
       <span class="win-prob-text">${winProbability.toFixed(1)}% Win Probability</span>
     </div>
 
-    ${UIComponents.createLiveRosterHTML(myRoster, myMatchup, myProjections, userMap[myRoster.owner_id], opponentProjections.totalCombined, myIsWinning,games)}
-    ${UIComponents.createLiveRosterHTML(opponentRoster, opponentMatchup, opponentProjections, userMap[opponentRoster.owner_id], myProjections.totalCombined, oppIsWinning,games )}
+    ${UIComponents.createLiveRosterHTML(myRoster, myMatchup, myProjections, userMap[myRoster.owner_id], opponentProjections.totalCombined, myIsWinning, games, true)}
+    ${UIComponents.createLiveRosterHTML(opponentRoster, opponentMatchup, opponentProjections, userMap[opponentRoster.owner_id], myProjections.totalCombined, oppIsWinning, games, true)}
   </div>
 `;
 
@@ -227,6 +239,7 @@ if (chrome && chrome.storage) {
     });
 
   }
+
 
   attachPlayerClickListener() {
     const statNameMap = {
@@ -263,38 +276,63 @@ if (chrome && chrome.storage) {
       const modal = document.getElementById('playerModal');
       const modalBody = document.getElementById('modalBody');
 
-      const playerData = await this.api.getPlayerDetails(playerId, this.currentSeason, this.currentWeek);
-
-      if (!playerData) {
-        modalBody.innerHTML = '<p>No stats available for this week.</p>';
-        modal.classList.remove('hidden');
-        return;
-      }
-
-      const statsHtml = Object.entries(statNameMap)
-        .filter(([key]) => playerData[key] !== undefined && playerData[key] !== null)
-        .map(([key, displayName]) => {
-          const value = playerData[key];
-          const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
-          return `<li><strong>${displayName}:</strong> ${displayValue}</li>`;
-        })
-        .join('');
-
+      // Create week selector
+      // Create week selector (only up to currentWeek)
+      const weekOptions = Array.from({ length: this.currentWeek }, (_, i) =>
+        `<option value="${i + 1}">Week ${i + 1}</option>`
+      ).join('');
       modalBody.innerHTML = `
-      <h2>${playerData.full_name}</h2>
-      <p><strong>Position:</strong> ${playerData.position}</p>
-      <p><strong>Team:</strong> ${playerData.team}</p>
-      <p><strong>Season:</strong> ${playerData.season}, <strong>Week:</strong> ${playerData.week}</p>
-      <p><strong>Stats:</strong></p>
-      <ul>
-        ${statsHtml || '<li>No stats available for this week.</li>'}
-      </ul>
-    `;
+  <div id="playerWeekSelector">
+    <select id="weekSelect">${weekOptions}</select>
+  </div>
+  <ul id="playerStatsList"></ul>
+`;
 
       modal.classList.remove('hidden');
 
+      // Close modal
       document.getElementById('modalClose').onclick = () => modal.classList.add('hidden');
       window.onclick = (event) => { if (event.target === modal) modal.classList.add('hidden'); };
+
+      const weekSelect = document.getElementById('weekSelect');
+
+      const loadPlayerStats = async (week) => {
+        const playerData = await this.api.getPlayerDetails(playerId, this.currentSeason, week);
+
+        if (!playerData) {
+          document.getElementById('playerStatsList').innerHTML = '<li>No stats available for this week.</li>';
+          return;
+        }
+
+        // Set week selector to current week
+        weekSelect.value = playerData.week;
+
+        const statsHtml = Object.entries(statNameMap)
+          .filter(([key]) => playerData[key] !== undefined && playerData[key] !== null)
+          .map(([key, displayName]) => {
+            const value = playerData[key];
+            const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
+            const className = typeof value === 'number' && value > 0 ? 'positive' : value < 0 ? 'negative' : '';
+            return `<li class="${className}"><strong>${displayName}:</strong> ${displayValue}</li>`;
+          })
+          .join('');
+
+        document.getElementById('playerStatsList').innerHTML = `
+        <h2>${playerData.full_name}</h2>
+        <p><strong>Position:</strong> ${playerData.position}</p>
+        <p><strong>Team:</strong> ${playerData.team}</p>
+        <p><strong>Season:</strong> ${playerData.season}, <strong>Week:</strong> ${playerData.week}</p>
+        ${statsHtml || '<li>No stats available for this week.</li>'}
+      `;
+      };
+
+      // Initial load
+      await loadPlayerStats(this.currentWeek);
+
+      // Reload stats when week changes
+      weekSelect.addEventListener('change', async (e) => {
+        await loadPlayerStats(e.target.value);
+      });
     });
   }
 
